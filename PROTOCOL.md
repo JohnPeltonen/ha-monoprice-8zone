@@ -65,7 +65,7 @@ Two differences from the 6-zone amp:
 | `<xxMUuu` | mute | unverified |
 | `<xxTRuu`, `<xxBSuu`, `<xxBLuu` | treble, bass, balance | unverified |
 
-What the 44518 sends back after a set command hasn't been captured yet.
+After a set command, the owner remembers the 44518 sending a single `#` and nothing else, so the zone's new status has to be queried separately. Not captured yet.
 
 ## PA (paging) and Do Not Disturb
 

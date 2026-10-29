@@ -1,11 +1,12 @@
 # Building this repo
 
-A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-232. Read [PROTOCOL.md](PROTOCOL.md) first: it records what the amp actually sends and why HA's built-in `monoprice` integration fails on it.
+A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-232. Read [PROTOCOL.md](PROTOCOL.md) first: it records what the amp actually sends and why HA's built-in `monoprice` integration fails on it. Then read [docs/design.md](docs/design.md): the full design, and who decided what.
 
 ## Scope
 
 - Published as-is and unmaintained. Build for the 44518 and keep it small. This isn't a general Monoprice library.
 - The read code must tolerate an echo (cheap, and it helps people who fork this for 4- or 6-zone amps). Don't build or test anything else for other models.
+- Zones 11 to 18 on the MASTER amp only. Never query slave zones (21 and up).
 
 ## Names
 
@@ -16,20 +17,23 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 ## Target
 
 - Home Assistant 2026.10, Python 3.14.
-- Serial: HA core now uses `serialx`; check which version HA pins before adding it to `requirements`. Alternatively, write a small asyncio transport and skip `pymonoprice` entirely. Don't depend on `pymonoprice`.
+- Serial: `serialx==1.11.0`, the version HA 2026.10 pins. Don't depend on `pymonoprice`.
+- List `usb` under `dependencies` in the manifest. `SerialPortSelector` gets its list of ports from it.
+- Forms use `probatio`, which replaced `voluptuous` in HA 2026.10.
 
 ## Requirements
 
-- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names.
+- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names. A set command gets a single `#` back (the owner's recollection, not captured yet).
 - **Connection:** one serial connection per config entry, every command behind one `asyncio.Lock`, opened on setup and **explicitly closed on unload**, so Reload works.
 - **Errors:** turn a port lock (`OSError` errno 16), a missing port and timeouts into clear config-flow errors, and into `ConfigEntryNotReady` during setup.
 - **Config flow:** pick the port with `SerialPortSelector`; zones (1-8) to enable; source names for 1-6, where unnamed sources stay out of the source list (Source 1 is often a doorbell chime). Add a **reconfigure** step so the port can change without deleting the entry. Use an options flow for zones and source names.
-- **Polling:** one `DataUpdateCoordinator` polls every enabled zone (a `?10` bulk query if the hardware check shows it works, otherwise one query per zone). Never probe slave zones (21+) unless the user enables them.
-- **Entities, grouped under one device for the amp:**
+- **Polling:** one `DataUpdateCoordinator` polls every enabled zone (a `?10` bulk query if the hardware check shows it works, otherwise one query per zone). Never query slave zones.
+- **Entities:** one device per zone, each linked to one device for the amp.
   - `media_player` per zone: on/off, volume (00-38 mapped to 0.0-1.0, plus volume step), mute, source select.
   - `switch` per zone: Do Not Disturb (`DT`).
-  - Optional: `binary_sensor` per zone for page active (`PA`).
-- **After a set command,** refresh that zone's state, unless the hardware check shows the amp returns the new status itself.
+  - `number` per zone: bass, treble and balance, as configuration entities.
+  - No page-active (`PA`) sensor in v1.
+- **After a set command,** refresh that zone's state. The amp doesn't send it back.
 
 ## Repo layout
 
@@ -56,12 +60,19 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 
 ## Hardware checks still to run (needs the owner at the amp)
 
-1. What the 44518 returns after a set command: nothing, `#`, or a status line.
+1. Confirm that a set command gets a single `#` back.
 2. Whether `?10` returns all eight zones.
 3. The replies for zones 17 and 18.
-4. What the amp does when asked about a nonexistent slave zone such as `?21`: silence or an error.
+4. Whether the set commands for mute, bass, treble and balance work, and which end of the balance scale is left.
 
 Write the results into PROTOCOL.md (change "unverified" to "observed").
+
+## Working agreements (approved by the owner on 2026-10-29)
+
+- **Pushing:** Claude may push to `main` in this repo, because the HA tests only run in GitHub Actions. This is an exception to the owner's usual rule.
+- **Plans:** one phase per plan. Claude builds each phase directly, without handing each task to a separate agent. A very capable reviewer agent reviews each plan before building starts, and reviews the code at the end of each phase. Work doesn't stop at a token limit.
+- **Names:** the owner's name and GitHub handle are fine where GitHub or HA needs them (LICENSE, `codeowners`, commit author). Keep other household members' names out of the repo.
+- **Notes:** anything useful to other people goes in PROTOCOL.md, docs/design.md or this file. Notes personal to the owner go in `.claude/docs/memory/`, which is gitignored.
 
 ## Writing style for docs in this repo
 

@@ -6,7 +6,7 @@ A Home Assistant custom integration for the Monoprice 44518 8-zone whole-home au
 
 I built this for my own amp, and it's provided as-is. I'm not maintaining it, answering questions, or reviewing pull requests. If it helps you, great. If it doesn't quite fit your setup, fork it and make it yours.
 
-Pretty much 100% vibe coded. I, for one, have embraced our AI overloards.
+Pretty much 100% vibe coded. I, for one, have embraced our AI overlords.
 
 What it's been run on: one 44518 set to MASTER (no linked slave amps), Home Assistant 2026.10, and an FTDI FT232R USB-to-serial adapter.
 

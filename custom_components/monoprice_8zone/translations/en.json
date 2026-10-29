@@ -3,7 +3,7 @@
     "error": {
       "no_answer": "The amp didn't answer. Check that it's powered on, the cable is connected, and the rear switch is set to MASTER.",
       "no_zones": "Choose at least one zone.",
-      "port_in_use": "The port is in use. If the built-in Monoprice integration is set up, delete it first.",
+      "port_in_use": "The port is in use. If the built-in Monoprice integration is set up, delete it, then restart Home Assistant.",
       "port_not_found": "The port doesn't exist. Check that the USB adapter is plugged in.",
       "unknown": "Something unexpected went wrong. The details are in the Home Assistant log."
     },
@@ -76,7 +76,7 @@
       "message": "The serial port stopped working. The integration is reconnecting."
     },
     "port_in_use": {
-      "message": "The port is in use. If the built-in Monoprice integration is set up, delete it first."
+      "message": "The port is in use. If the built-in Monoprice integration is set up, delete it, then restart Home Assistant."
     },
     "port_not_found": {
       "message": "The port doesn't exist. Check that the USB adapter is plugged in."

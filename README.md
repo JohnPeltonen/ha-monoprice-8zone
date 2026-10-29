@@ -35,7 +35,7 @@ Home Assistant's built-in "Monoprice 6-Zone Amplifier" integration can't read th
 
 Then restart Home Assistant fully (a reload isn't enough the first time) and add the integration under Settings > Devices & services. Setup asks for the serial port and checks that the amp answers. Then it asks which zones you use and what to call your sources.
 
-If you were using the built-in Monoprice integration, delete it first. Only one integration can hold the serial port at a time.
+If you were using the built-in Monoprice integration, delete it before that restart. It lets go of the serial port only when Home Assistant restarts, and only one integration can hold the port at a time.
 
 Tip: pick the `/dev/serial/by-id/...` path for your adapter, not `/dev/ttyUSB0`. The numbered names can swap between USB devices when the server reboots.
 

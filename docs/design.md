@@ -140,7 +140,7 @@ Errors on the port screen:
 
 | Problem | How it's detected | What the message says |
 |---|---|---|
-| Port in use | `OSError` with errno 16 (`EBUSY`). `serialx` locks the port, so this means another program or integration has it open, for example the built-in Monoprice integration. | The port is in use. If the built-in Monoprice integration is set up, delete it first. |
+| Port in use | `OSError` with errno 16 (`EBUSY`). `serialx` locks the port, so this means another program or integration has it open, for example the built-in Monoprice integration. | The port is in use. If the built-in Monoprice integration is set up, delete it, then restart Home Assistant. (It lets go of the port only when HA restarts.) |
 | Port not found | `OSError` such as `ENOENT` (no such file) | The port doesn't exist. Check that the USB adapter is plugged in. |
 | No answer | Timeout | The amp didn't answer. Check that it's powered on, the cable is connected, and the rear switch is set to MASTER. |
 

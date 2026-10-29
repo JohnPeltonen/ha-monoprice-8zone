@@ -47,8 +47,11 @@ class ZoneMediaPlayer(ZoneEntity, MediaPlayerEntity):
         self._attr_source_list = [sources[number] for number in sorted(sources)]
 
     @property
-    def state(self) -> MediaPlayerState:
-        return MediaPlayerState.ON if self.status.power else MediaPlayerState.OFF
+    def state(self) -> MediaPlayerState | None:
+        # HA reads this through entity_picture even while the zone is unavailable.
+        if (status := self.coordinator.data.get(self.zone)) is None:
+            return None
+        return MediaPlayerState.ON if status.power else MediaPlayerState.OFF
 
     @property
     def volume_level(self) -> float:

@@ -1,12 +1,17 @@
 import asyncio
 import errno
+from datetime import timedelta
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.monoprice_8zone.amp import VOLUME
-from custom_components.monoprice_8zone.const import CONF_ZONES, ZONES
+from custom_components.monoprice_8zone.const import CONF_ZONES, SCAN_INTERVAL, ZONES
+
+NEXT_POLL = SCAN_INTERVAL + timedelta(seconds=1)
 
 
 async def test_setup_polls_every_enabled_zone(hass, amp, entry, set_up):
@@ -80,3 +85,26 @@ async def test_set_during_a_poll_is_kept(hass, amp, entry, set_up):
     await poll
     assert amp.writes[:4] == [b"?11\r", b"<11VO11\r", b"?11\r", b"?12\r"]  # the set ran mid-poll
     assert coordinator.data[1].volume == 11  # not the 10 the poll read before the set
+
+
+# The poll and the setup retry run as background tasks, so these tests wait for those too.
+async def test_polls_every_30_seconds(hass, amp, entry, set_up):
+    await set_up()
+    amp.zones[1]["VO"] = 20
+    async_fire_time_changed(hass, dt_util.utcnow() + NEXT_POLL)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert entry.runtime_data.data[1].volume == 20
+
+
+async def test_port_failure_reloads_and_waits_for_the_port(hass, amp, entry, set_up):
+    await set_up()
+    amp.connections[0].unplug()
+    amp.open_error = FileNotFoundError(errno.ENOENT, "missing")
+    async_fire_time_changed(hass, dt_util.utcnow() + NEXT_POLL)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.error_reason_translation_key == "port_not_found"
+    amp.open_error = None  # plugged back in
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=2))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert entry.state is ConfigEntryState.LOADED

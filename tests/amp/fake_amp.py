@@ -19,8 +19,12 @@ class FakeTransport(asyncio.Transport):
         self.writes: list[bytes] = []
         self.log: list[tuple[str, bytes]] = []
         self.closed = False
+        # serialx's write() raises like this when the port has just failed.
+        self.write_error: OSError | None = None
 
     def write(self, data: bytes) -> None:
+        if self.write_error is not None:
+            raise self.write_error
         self.writes.append(bytes(data))
         self.log.append(("write", bytes(data)))
         reply = self.replies.pop(0) if self.replies else None

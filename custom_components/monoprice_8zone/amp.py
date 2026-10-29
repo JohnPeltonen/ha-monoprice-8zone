@@ -4,12 +4,17 @@ This module must not import homeassistant: its tests run on Windows, where Home 
 """
 
 import asyncio
+import errno
 import logging
 import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
+import serialx
+
 logger = logging.getLogger(__name__)
+
+BAUD_RATE = 9600
 
 POWER = "PR"
 MUTE = "MU"
@@ -74,6 +79,14 @@ class BadReplyError(AmpError):
 
 class PortFailedError(AmpError):
     """The serial port failed or disappeared while in use."""
+
+
+class PortInUseError(AmpError):
+    """Another program or integration has the serial port open."""
+
+
+class PortNotFoundError(AmpError):
+    """The serial port doesn't exist."""
 
 
 def status_command(zone: int) -> bytes:
@@ -152,6 +165,14 @@ class Amp:
         self._transport = transport
         self._protocol = protocol
         self._lock = asyncio.Lock()
+        self._closed = False
+
+    async def close(self) -> None:
+        """Close the port, after any command in progress has finished."""
+        async with self._lock:
+            self._closed = True
+            self._transport.close()
+            await self._protocol.closed
 
     async def query_zone(self, zone: int) -> ZoneStatus:
         async with self._lock:
@@ -210,11 +231,17 @@ class Amp:
         return status
 
     def _send(self, data: bytes) -> None:
+        # A deliberate close isn't a port failure: the integration reloads itself on PortFailedError.
+        if self._closed:
+            raise AmpError("The connection is closed")
         if self._protocol.lost:
             raise PortFailedError("The serial port is gone")
         self._protocol.buffer.clear()  # throw away anything left over from an earlier command
         logger.debug("Write %r", data)
-        self._transport.write(data)
+        try:
+            self._transport.write(data)
+        except OSError as exc:
+            raise PortFailedError(f"Writing to the serial port failed: {exc}") from exc
 
     async def _read_until(self, done: Callable[[bytearray], bool], timeout: float) -> None:
         loop = asyncio.get_running_loop()
@@ -228,6 +255,21 @@ class Amp:
                     f"No complete reply within {timeout} s, received {bytes(self._protocol.buffer)!r}"
                 )
             await self._protocol.wait_for_change(remaining)
+
+
+async def open_amp(port: str) -> Amp:
+    """Open the port at 9600 baud. serialx's defaults give 8N1, no flow control and exclusive use."""
+    try:
+        transport, protocol = await serialx.create_serial_connection(
+            asyncio.get_running_loop(), AmpProtocol, port, baudrate=BAUD_RATE
+        )
+    except OSError as exc:
+        if exc.errno == errno.EBUSY:
+            raise PortInUseError(f"{port} is in use by another program or integration") from exc
+        if exc.errno in (errno.ENOENT, errno.ENODEV, errno.ENXIO):
+            raise PortNotFoundError(f"{port} doesn't exist") from exc
+        raise
+    return Amp(transport, protocol)
 
 
 def _zone_id(zone: int) -> int:

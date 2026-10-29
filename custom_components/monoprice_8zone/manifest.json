@@ -1,0 +1,12 @@
+{
+  "domain": "monoprice_8zone",
+  "name": "Monoprice 8-Zone Amplifier (44518)",
+  "codeowners": ["@JohnPeltonen"],
+  "dependencies": ["usb"],
+  "documentation": "https://github.com/JohnPeltonen/ha-monoprice-8zone",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/JohnPeltonen/ha-monoprice-8zone",
+  "requirements": ["serialx>=1.11.0"],
+  "version": "0.1.0"
+}

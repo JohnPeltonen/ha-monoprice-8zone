@@ -1,0 +1,3 @@
+pytest
+pytest-asyncio
+serialx==1.11.0

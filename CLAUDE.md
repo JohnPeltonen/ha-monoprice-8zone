@@ -38,9 +38,15 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 - `hacs.json` is already in the root. Keep the `homeassistant` minimum version accurate.
 - Add `.github/workflows/hassfest.yaml` (uses `home-assistant/actions/hassfest`) once the integration exists. Releases: tag `vX.Y.Z` to match the manifest version.
 
+## Diagnostics (needed for testing on real hardware)
+
+- A `monoprice_8zone.send_command` action that sends a raw command string and returns the amp's raw reply as action response data. This lets the owner run the hardware checks below from Developer Tools > Actions, without unplugging the cable or using PuTTY.
+- Log every raw write and read at debug level.
+
 ## Tests
 
 - pytest with `pytest-homeassistant-custom-component`.
+- Home Assistant doesn't run on native Windows. Run tests in Linux, WSL or macOS, and add `.github/workflows/tests.yaml` (Ubuntu, Python 3.14) so they also run on every push.
 - A fake serial transport that replays the captured 44518 reply from PROTOCOL.md; one variant with an echo; one with a timeout.
 - Cover the config flow (including the port-lock error), setup and unload (the port gets closed), and the reply parser.
 

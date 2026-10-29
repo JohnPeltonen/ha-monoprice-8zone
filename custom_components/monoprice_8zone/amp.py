@@ -37,6 +37,8 @@ STATUS_PATTERN = re.compile(rb">1([1-8])(\d{20})[^#]*#")
 
 # Seconds to wait for a complete status reply. One takes about 50 ms to arrive at 9600 baud.
 STATUS_TIMEOUT = 1.0
+# Seconds to wait for the "#" the amp sends after a set command.
+SET_REPLY_TIMEOUT = 0.5
 
 
 @dataclass(frozen=True)
@@ -162,6 +164,17 @@ class Amp:
         if results and all(status is None for status in results.values()):
             raise AmpTimeoutError("No zone answered")
         return results
+
+    async def set_value(self, zone: int, field: str, value: int) -> ZoneStatus:
+        """Change one setting, then return the zone's status as the amp reports it."""
+        command = set_command(zone, field, value)
+        async with self._lock:
+            self._send(command)
+            try:
+                await self._read_until(lambda buffer: b"#" in buffer, SET_REPLY_TIMEOUT)
+            except AmpTimeoutError:
+                logger.debug("No # after %r", command)
+            return await self._query_locked(zone)
 
     async def _query_locked(self, zone: int) -> ZoneStatus:
         self._send(status_command(zone))

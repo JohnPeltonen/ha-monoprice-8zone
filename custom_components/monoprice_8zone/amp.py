@@ -73,10 +73,6 @@ class AmpTimeoutError(AmpError):
     """The amp didn't answer in time."""
 
 
-class BadReplyError(AmpError):
-    """The amp answered about a different zone."""
-
-
 class PortFailedError(AmpError):
     """The serial port failed or disappeared while in use."""
 
@@ -102,28 +98,30 @@ def set_command(zone: int, field: str, value: int) -> bytes:
     return b"<%d%s%02d\r" % (_zone_id(zone), field.encode("ascii"), value)
 
 
-def find_status(data: bytes | bytearray) -> ZoneStatus | None:
-    """Return the first complete status reply in data, skipping anything before it."""
-    match = STATUS_PATTERN.search(data)
-    if match is None:
-        return None
-    digits = match.group(2)
-    page, power, mute, dnd, volume, treble, bass, balance, source, keypad = (
-        int(digits[i : i + 2]) for i in range(0, 20, 2)
-    )
-    return ZoneStatus(
-        zone=int(match.group(1)),
-        page=bool(page),
-        power=bool(power),
-        mute=bool(mute),
-        do_not_disturb=bool(dnd),
-        volume=volume,
-        treble=treble,
-        bass=bass,
-        balance=balance,
-        source=source,
-        keypad=bool(keypad),
-    )
+def find_status(data: bytes | bytearray, zone: int | None = None) -> ZoneStatus | None:
+    """Return the first complete status reply in data, for zone if given, skipping anything else."""
+    for match in STATUS_PATTERN.finditer(data):
+        found_zone = int(match.group(1))
+        if zone is not None and found_zone != zone:
+            continue
+        digits = match.group(2)
+        page, power, mute, dnd, volume, treble, bass, balance, source, keypad = (
+            int(digits[i : i + 2]) for i in range(0, 20, 2)
+        )
+        return ZoneStatus(
+            zone=found_zone,
+            page=bool(page),
+            power=bool(power),
+            mute=bool(mute),
+            do_not_disturb=bool(dnd),
+            volume=volume,
+            treble=treble,
+            bass=bass,
+            balance=balance,
+            source=source,
+            keypad=bool(keypad),
+        )
+    return None
 
 
 class AmpProtocol(asyncio.Protocol):
@@ -184,7 +182,7 @@ class Amp:
         for zone in zones:
             try:
                 results[zone] = await self.query_zone(zone)
-            except (AmpTimeoutError, BadReplyError) as exc:
+            except AmpTimeoutError as exc:
                 logger.debug("Zone %d didn't answer: %s", zone, exc)
                 results[zone] = None
         if results and all(status is None for status in results.values()):
@@ -224,11 +222,9 @@ class Amp:
 
     async def _query_locked(self, zone: int) -> ZoneStatus:
         self._send(status_command(zone))
-        await self._read_until(lambda buffer: find_status(buffer) is not None, STATUS_TIMEOUT)
-        status = find_status(self._protocol.buffer)
-        if status.zone != zone:
-            raise BadReplyError(f"Asked about zone {zone}, got a reply for zone {status.zone}")
-        return status
+        # A late reply about another zone can arrive first. find_status skips it and keeps looking.
+        await self._read_until(lambda buffer: find_status(buffer, zone) is not None, STATUS_TIMEOUT)
+        return find_status(self._protocol.buffer, zone)
 
     def _send(self, data: bytes) -> None:
         # A deliberate close isn't a port failure: the integration reloads itself on PortFailedError.

@@ -3,8 +3,8 @@ import asyncio
 import pytest
 
 import amp as amp_module
-from amp import AmpTimeoutError, BadReplyError
-from fake_amp import ZONE_1, ZONE_2, ZONE_5
+from amp import AmpTimeoutError
+from fake_amp import ZONE_1, ZONE_1_VOLUME_20, ZONE_2, ZONE_5
 
 
 async def test_query_zone_returns_status(make_amp):
@@ -32,15 +32,22 @@ async def test_query_zone_times_out(make_amp, monkeypatch):
 
 
 async def test_query_zone_discards_stray_bytes(make_amp):
-    amp, transport = make_amp(ZONE_1)
-    transport.protocol.data_received(ZONE_5)  # a late reply to an earlier command
+    amp, transport = make_amp(ZONE_1_VOLUME_20)
+    transport.protocol.data_received(ZONE_1)  # a late reply to an earlier query of the same zone
+    assert (await amp.query_zone(1)).volume == 20
+
+
+async def test_query_zone_skips_another_zones_reply(make_amp):
+    amp, _ = make_amp([ZONE_5, ZONE_1])  # a late reply about zone 5 arrives first
     assert (await amp.query_zone(1)).zone == 1
 
 
-async def test_query_zone_wrong_zone_is_an_error(make_amp):
-    amp, _ = make_amp(ZONE_5)
-    with pytest.raises(BadReplyError):
-        await amp.query_zone(1)
+async def test_query_zones_survives_a_late_reply(make_amp, monkeypatch):
+    monkeypatch.setattr(amp_module, "STATUS_TIMEOUT", 0.05)
+    amp, _ = make_amp(None, [ZONE_1, ZONE_2])  # zone 1's reply comes too late, during zone 2's query
+    result = await amp.query_zones([1, 2])
+    assert result[1] is None
+    assert result[2].zone == 2
 
 
 async def test_commands_wait_their_turn(make_amp):

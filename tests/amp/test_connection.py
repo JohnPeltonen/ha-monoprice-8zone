@@ -79,6 +79,26 @@ async def test_port_failure_during_a_read(make_amp):
     assert loop.time() - started < 0.5  # well before the 1-second status timeout
 
 
+async def test_query_zones_port_failure_passes_through(make_amp):
+    amp, transport = make_amp(ZONE_1, None)
+    asyncio.get_running_loop().call_later(
+        0.02, transport.protocol.connection_lost, OSError(errno.EIO, "device disconnected")
+    )
+    with pytest.raises(PortFailedError):
+        await amp.query_zones([1, 2])
+
+
+async def test_close_waits_for_the_command_in_progress(make_amp):
+    amp, _ = make_amp([ZONE_1[:10], ZONE_1[10:]])
+    query = asyncio.create_task(amp.query_zone(1))
+    await asyncio.sleep(0)  # let the query send its command and start waiting
+    await amp.close()
+    assert (await query).zone == 1
+    with pytest.raises(AmpError) as caught:
+        await amp.query_zone(1)
+    assert not isinstance(caught.value, PortFailedError)
+
+
 async def test_write_failure_is_a_port_failure(make_amp):
     amp, transport = make_amp(ZONE_1)
     transport.write_error = OSError(errno.EIO, "device disconnected or in use by another process")

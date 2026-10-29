@@ -76,7 +76,7 @@ Send `?1z`, where `z` is the zone number 1 to 8 (so `?11` to `?18`). Read until 
 
 - If the amp echoes the command first, the echo is skipped. (The 44518 doesn't echo. The 6-zone amp does.)
 - The zone and source names after the digits are ignored.
-- A reply for a different zone than the one asked about is an error. **(Claude's call)**
+- A status line for a different zone, for example a late reply to an earlier query, is skipped. The read goes on until the asked zone's line arrives or the timeout passes. **(Claude's call)**
 - No complete reply within 1 second is a timeout. A reply takes about 50 ms to arrive at 9600 baud. **(Claude's call)**
 
 ### Set commands
@@ -181,7 +181,7 @@ A fake serial connection replays:
 - no reply (timeout);
 - a single `#` after a set command;
 - stray bytes before a reply **(Claude's call)**;
-- a reply for the wrong zone **(Claude's call)**.
+- a late reply about another zone, on its own and in the middle of a poll **(Claude's call)**.
 
 The reply parser and the command builders are tested too.
 

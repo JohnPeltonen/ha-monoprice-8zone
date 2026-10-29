@@ -51,7 +51,7 @@ It has failed, even if every feature technically works, if:
 ## Constraints
 
 - **Home Assistant 2026.10 or newer, Python 3.14.**
-- **Serial library:** `serialx` version 1.11.0, the same version HA 2026.10 requires. Not `pymonoprice`. `serialx` opens ports through asyncio (`serialx.open_serial_connection`) and locks the port for exclusive use by default.
+- **Serial library:** `serialx`, not `pymonoprice`. The manifest asks for `serialx>=1.11.0`. hassfest rejects an exact pin on a package HA itself uses, and HA 2026.10's `usb` integration (a dependency) pins 1.11.0, so that's the version that gets installed. `serialx` opens ports through asyncio (`serialx.create_serial_connection`) and locks the port for exclusive use by default.
 - **Forms:** HA 2026.10 builds config-flow forms with `probatio`, which replaced `voluptuous`. HA's built-in integrations show the style.
 - **The `usb` integration is a dependency** in `manifest.json`. The port picker (`SerialPortSelector`) gets its list of ports from it.
 - **One amp per HA install.** Only one config entry (one configured copy of the integration) is allowed.

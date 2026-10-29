@@ -17,7 +17,7 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 ## Target
 
 - Home Assistant 2026.10, Python 3.14.
-- Serial: `serialx==1.11.0`, the version HA 2026.10 pins. Don't depend on `pymonoprice`.
+- Serial: `serialx>=1.11.0` in the manifest. hassfest rejects an exact pin on a package HA itself uses, and HA 2026.10's `usb` integration pins 1.11.0. Tests pin `serialx==1.11.0`. Don't depend on `pymonoprice`.
 - List `usb` under `dependencies` in the manifest. `SerialPortSelector` gets its list of ports from it.
 - Forms use `probatio`, which replaced `voluptuous` in HA 2026.10.
 

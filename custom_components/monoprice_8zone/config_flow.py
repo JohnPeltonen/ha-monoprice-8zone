@@ -45,8 +45,10 @@ async def check_port(port: str) -> str | None:
     """Open the port and ask zone 1 for its status. Return an error key, or None if the amp answered."""
     try:
         amp = await open_amp(port)
-        await amp.query_zone(1)
-        await amp.close()
+        try:
+            await amp.query_zone(1)
+        finally:
+            await amp.close()
     except PortInUseError:
         return "port_in_use"
     except PortNotFoundError:
@@ -61,7 +63,7 @@ async def check_port(port: str) -> str | None:
 
 def same_device(port: str, other: str) -> bool:
     """True when both paths are the same device, for example /dev/ttyUSB0 and its /dev/serial/by-id/ link."""
-    return port == other
+    return os.path.realpath(port) == os.path.realpath(other)
 
 
 def options_from_input(user_input: dict[str, Any]) -> dict[str, Any]:

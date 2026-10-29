@@ -1,11 +1,14 @@
-"""Setup screens for the Monoprice 8-Zone Amplifier (44518): the port, then the zones and source names."""
+"""Setup screens for the Monoprice 8-Zone Amplifier (44518): the port, then the zones and source names.
+Also changing the port (reconfigure), and the zones and source names (options)."""
 
 import logging
+import os
 from typing import Any
 
 import probatio
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.const import CONF_PORT
+from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
@@ -58,6 +61,11 @@ async def check_port(port: str) -> str | None:
     return None
 
 
+def same_device(port: str, other: str) -> bool:
+    """True when both paths are the same device, for example /dev/ttyUSB0 and its /dev/serial/by-id/ link."""
+    return os.path.realpath(port) == os.path.realpath(other)
+
+
 def options_from_input(user_input: dict[str, Any]) -> dict[str, Any]:
     """The entry's options from the zones and sources form. Blank source names are left out."""
     names = {str(number): user_input.get(f"source_{number}", "").strip() for number in SOURCES}
@@ -96,6 +104,52 @@ class Monoprice8ZoneConfigFlow(ConfigFlow, domain=DOMAIN):
         suggested = user_input if user_input is not None else {CONF_ZONES: [str(zone) for zone in ZONES]}
         return self.async_show_form(
             step_id="zones",
+            data_schema=self.add_suggested_values_to_schema(ZONES_AND_SOURCES_SCHEMA, suggested),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            port = user_input[CONF_PORT]
+            # The integration holds its port open, so checking the same device again would find it in use.
+            if await self.hass.async_add_executor_job(same_device, port, entry.data[CONF_PORT]):
+                error = None
+            else:
+                error = await check_port(port)
+            if error is None:
+                return self.async_update_reload_and_abort(entry, data_updates={CONF_PORT: port})
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(PORT_SCHEMA, user_input or entry.data),
+            errors=errors,
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> Monoprice8ZoneOptionsFlow:
+        return Monoprice8ZoneOptionsFlow()
+
+
+class Monoprice8ZoneOptionsFlow(OptionsFlowWithReload):
+    """The zones and source names. HA reloads the integration when they change."""
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            options = options_from_input(user_input)
+            if options[CONF_ZONES]:
+                return self.async_create_entry(data=options)
+            errors[CONF_ZONES] = "no_zones"
+        current = self.config_entry.options
+        suggested = user_input if user_input is not None else {
+            CONF_ZONES: [str(zone) for zone in current[CONF_ZONES]],
+            **{f"source_{number}": name for number, name in current[CONF_SOURCES].items()},
+        }
+        return self.async_show_form(
+            step_id="init",
             data_schema=self.add_suggested_values_to_schema(ZONES_AND_SOURCES_SCHEMA, suggested),
             errors=errors,
         )

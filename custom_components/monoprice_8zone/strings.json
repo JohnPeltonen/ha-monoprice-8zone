@@ -8,6 +8,15 @@
       "unknown": "Something unexpected went wrong. The details are in the Home Assistant log."
     },
     "step": {
+      "reconfigure": {
+        "data": {
+          "port": "Serial port"
+        },
+        "data_description": {
+          "port": "The USB-to-serial adapter connected to the amp. A /dev/serial/by-id/ path keeps working after a reboot."
+        },
+        "title": "Change the serial port"
+      },
       "user": {
         "data": {
           "port": "Serial port"
@@ -68,6 +77,26 @@
     },
     "unknown_source": {
       "message": "{source} isn't one of the named sources."
+    }
+  },
+  "options": {
+    "error": {
+      "no_zones": "Choose at least one zone."
+    },
+    "step": {
+      "init": {
+        "data": {
+          "source_1": "Source 1",
+          "source_2": "Source 2",
+          "source_3": "Source 3",
+          "source_4": "Source 4",
+          "source_5": "Source 5",
+          "source_6": "Source 6",
+          "zones": "Zones"
+        },
+        "description": "Choose the zones you use, and name the sources you play music from. A source without a name stays out of the source list.",
+        "title": "Zones and sources"
+      }
     }
   }
 }

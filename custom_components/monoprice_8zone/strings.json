@@ -1,0 +1,19 @@
+{
+  "exceptions": {
+    "closed": {
+      "message": "The integration is reloading. Try again in a moment."
+    },
+    "no_answer": {
+      "message": "The amp didn't answer. Check that it's powered on, the cable is connected, and the rear switch is set to MASTER."
+    },
+    "port_failed": {
+      "message": "The serial port stopped working. The integration is reconnecting."
+    },
+    "port_in_use": {
+      "message": "The port is in use. If the built-in Monoprice integration is set up, delete it first."
+    },
+    "port_not_found": {
+      "message": "The port doesn't exist. Check that the USB adapter is plugged in."
+    }
+  }
+}

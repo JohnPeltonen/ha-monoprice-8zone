@@ -1,1 +1,31 @@
 """Monoprice 8-Zone Amplifier (44518) integration."""
+
+from homeassistant.const import CONF_PORT, Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
+
+from custom_components.monoprice_8zone.amp import PortInUseError, PortNotFoundError, open_amp
+from custom_components.monoprice_8zone.const import DOMAIN
+from custom_components.monoprice_8zone.coordinator import AmpConfigEntry, AmpCoordinator
+
+PLATFORMS: list[Platform] = []
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: AmpConfigEntry) -> bool:
+    try:
+        amp = await open_amp(entry.data[CONF_PORT])
+    except PortInUseError as exc:
+        raise ConfigEntryNotReady(translation_domain=DOMAIN, translation_key="port_in_use") from exc
+    except PortNotFoundError as exc:
+        raise ConfigEntryNotReady(translation_domain=DOMAIN, translation_key="port_not_found") from exc
+    # HA runs this on unload, after the entities are gone, and after any setup that fails from here on.
+    entry.async_on_unload(amp.close)
+    coordinator = AmpCoordinator(hass, entry, amp)
+    await coordinator.async_config_entry_first_refresh()
+    entry.runtime_data = coordinator
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: AmpConfigEntry) -> bool:
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

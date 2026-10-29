@@ -70,6 +70,7 @@ Write the results into PROTOCOL.md (change "unverified" to "observed").
 ## Working agreements (approved by the owner on 2026-10-29)
 
 - **Pushing:** Claude may push to `main` in this repo, because the HA tests only run in GitHub Actions. This is an exception to the owner's usual rule.
+- **Red runs:** a task with HA tests pushes its failing tests before its implementation, so the public Actions history shows red runs. That's fine (approved by the owner on 2026-10-29).
 - **Plans:** one phase per plan. Claude builds each phase directly, without handing each task to a separate agent. A very capable reviewer agent reviews each plan before building starts, and reviews the code at the end of each phase. Work doesn't stop at a token limit.
 - **Names:** the owner's name and GitHub handle are fine where GitHub or HA needs them (LICENSE, `codeowners`, commit author). Keep other household members' names out of the repo.
 - **Notes:** anything useful to other people goes in PROTOCOL.md, docs/design.md or this file. Notes personal to the owner go in `.claude/docs/memory/`, which is gitignored.

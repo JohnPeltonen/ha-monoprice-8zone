@@ -10,7 +10,7 @@ from fake_amp import ZONE_1, FakeTransport
 
 def fake_opener(calls, replies):
     async def create_serial_connection(loop, protocol_factory, url, baudrate, **kwargs):
-        calls.append((url, baudrate))
+        calls.append((url, baudrate, kwargs))
         protocol = protocol_factory()
         transport = FakeTransport(protocol, replies)
         protocol.connection_made(transport)
@@ -23,7 +23,8 @@ async def test_open_amp_opens_the_port_at_9600(monkeypatch):
     calls = []
     monkeypatch.setattr(amp_module.serialx, "create_serial_connection", fake_opener(calls, [ZONE_1]))
     amp = await open_amp("/dev/ttyUSB0")
-    assert calls == [("/dev/ttyUSB0", 9600)]
+    # Nothing overrides serialx's defaults: 8N1, no flow control, exclusive use.
+    assert calls == [("/dev/ttyUSB0", 9600, {})]
     assert (await amp.query_zone(1)).zone == 1
 
 

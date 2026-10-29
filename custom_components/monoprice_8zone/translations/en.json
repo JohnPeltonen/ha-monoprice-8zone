@@ -60,11 +60,17 @@
     }
   },
   "exceptions": {
+    "bad_command": {
+      "message": "Send one command that starts with ? or <, for example ?11."
+    },
     "closed": {
       "message": "The integration is reloading. Try again in a moment."
     },
     "no_answer": {
       "message": "The amp didn't answer. Check that it's powered on, the cable is connected, and the rear switch is set to MASTER."
+    },
+    "not_loaded": {
+      "message": "The integration isn't set up yet, or it's waiting for the amp."
     },
     "port_failed": {
       "message": "The serial port stopped working. The integration is reconnecting."
@@ -97,6 +103,18 @@
         "description": "Choose the zones you use, and name the sources you play music from. A source without a name stays out of the source list.",
         "title": "Zones and sources"
       }
+    }
+  },
+  "services": {
+    "send_command": {
+      "description": "Sends a raw command to the amp and returns the amp's raw reply. For testing the amp from Developer Tools.",
+      "fields": {
+        "command": {
+          "description": "The command without the carriage return, for example ?11 or <11MU01. Only commands that start with ? or < are sent.",
+          "name": "Command"
+        }
+      },
+      "name": "Send command"
     }
   }
 }

@@ -4,7 +4,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from custom_components.monoprice_8zone.amp import Amp, AmpError, AmpTimeoutError, PortFailedError, ZoneStatus
@@ -44,6 +44,16 @@ class AmpCoordinator(DataUpdateCoordinator[dict[int, ZoneStatus | None]]):
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key=self._error_key(exc)) from exc
         self._set_during_poll[zone] = status
         self.async_set_updated_data({**self.data, zone: status})
+
+    async def async_send_raw(self, command: str) -> str:
+        """Send one raw command and return the amp's reply, with CR and LF written out so they show."""
+        try:
+            reply = await self.amp.send_raw(command)
+        except ValueError as exc:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="bad_command") from exc
+        except AmpError as exc:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key=self._error_key(exc)) from exc
+        return reply.decode("ascii", errors="backslashreplace").replace("\r", "\\r").replace("\n", "\\n")
 
     def _error_key(self, exc: AmpError) -> str:
         """Name the error for the UI. A port failure also reloads the integration, which reopens the port."""

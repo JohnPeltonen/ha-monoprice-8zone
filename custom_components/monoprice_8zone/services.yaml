@@ -1,0 +1,7 @@
+send_command:
+  fields:
+    command:
+      required: true
+      example: "?11"
+      selector:
+        text:

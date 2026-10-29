@@ -3,14 +3,24 @@
 from homeassistant.const import CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers.typing import ConfigType
 
 from custom_components.monoprice_8zone.amp import PortInUseError, PortNotFoundError, open_amp
 from custom_components.monoprice_8zone.const import CONF_ZONES, DOMAIN
 from custom_components.monoprice_8zone.coordinator import AmpConfigEntry, AmpCoordinator
 from custom_components.monoprice_8zone.entity import zone_device_identifier
+from custom_components.monoprice_8zone.services import async_setup_services
 
 PLATFORMS = [Platform.MEDIA_PLAYER, Platform.NUMBER, Platform.SWITCH]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    # The action exists whether or not the amp is set up, so it can say which.
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AmpConfigEntry) -> bool:

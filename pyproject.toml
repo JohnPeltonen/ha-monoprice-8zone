@@ -2,3 +2,5 @@
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+# HA finds the integration by importing custom_components, so the repo root must be on the path.
+pythonpath = ["."]

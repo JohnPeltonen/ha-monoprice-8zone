@@ -1,0 +1,6 @@
+# Home Assistant 2026.10.0 (the minimum in hacs.json) and its test helpers. CI only.
+pytest-homeassistant-custom-component==0.13.371
+# HA's tests don't install integration requirements, so they're listed here:
+# serialx for this integration and for usb (a dependency), aiousbwatcher for usb.
+serialx==1.11.0
+aiousbwatcher==1.1.2

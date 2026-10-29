@@ -1,0 +1,59 @@
+# Building this repo
+
+A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-232. Read [PROTOCOL.md](PROTOCOL.md) first: it records what the amp actually sends and why HA's built-in `monoprice` integration fails on it.
+
+## Scope
+
+- Published as-is and unmaintained. Build for the 44518 and keep it small. This isn't a general Monoprice library.
+- The read code must tolerate an echo (cheap, and it helps people who fork this for 4- or 6-zone amps). Don't build or test anything else for other models.
+
+## Names
+
+- Domain: `monoprice_8zone`. Never `monoprice` (that's the built-in integration).
+- Display name: "Monoprice 8-Zone Amplifier (44518)".
+- When naming a category field, use `type` (or `<thing>_type`), never `kind`.
+
+## Target
+
+- Home Assistant 2026.10, Python 3.14.
+- Serial: HA core now uses `serialx`; check which version HA pins before adding it to `requirements`. Alternatively, write a small asyncio transport and skip `pymonoprice` entirely. Don't depend on `pymonoprice`.
+
+## Requirements
+
+- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names.
+- **Connection:** one serial connection per config entry, every command behind one `asyncio.Lock`, opened on setup and **explicitly closed on unload**, so Reload works.
+- **Errors:** turn a port lock (`OSError` errno 16), a missing port and timeouts into clear config-flow errors, and into `ConfigEntryNotReady` during setup.
+- **Config flow:** pick the port with `SerialPortSelector`; zones (1-8) to enable; source names for 1-6, where unnamed sources stay out of the source list (Source 1 is often a doorbell chime). Add a **reconfigure** step so the port can change without deleting the entry. Use an options flow for zones and source names.
+- **Polling:** one `DataUpdateCoordinator` polls every enabled zone (a `?10` bulk query if the hardware check shows it works, otherwise one query per zone). Never probe slave zones (21+) unless the user enables them.
+- **Entities, grouped under one device for the amp:**
+  - `media_player` per zone: on/off, volume (00-38 mapped to 0.0-1.0, plus volume step), mute, source select.
+  - `switch` per zone: Do Not Disturb (`DT`).
+  - Optional: `binary_sensor` per zone for page active (`PA`).
+- **After a set command,** refresh that zone's state, unless the hardware check shows the amp returns the new status itself.
+
+## Repo layout
+
+- `custom_components/monoprice_8zone/` holds everything (manifest, `__init__.py`, config flow, coordinator, platforms, `strings.json` and `translations/en.json`).
+- `manifest.json`: `documentation` and `issue_tracker` both point to the repo URL; `version` is semver; `codeowners` is `["@JohnPeltonen"]`; `iot_class` is `local_polling`; `config_flow` is true.
+- `hacs.json` is already in the root. Keep the `homeassistant` minimum version accurate.
+- Add `.github/workflows/hassfest.yaml` (uses `home-assistant/actions/hassfest`) once the integration exists. Releases: tag `vX.Y.Z` to match the manifest version.
+
+## Tests
+
+- pytest with `pytest-homeassistant-custom-component`.
+- A fake serial transport that replays the captured 44518 reply from PROTOCOL.md; one variant with an echo; one with a timeout.
+- Cover the config flow (including the port-lock error), setup and unload (the port gets closed), and the reply parser.
+
+## Hardware checks still to run (needs the owner at the amp)
+
+1. What the 44518 returns after a set command: nothing, `#`, or a status line.
+2. Whether `?10` returns all eight zones.
+3. The replies for zones 17 and 18.
+4. What the amp does when asked about a nonexistent slave zone such as `?21`: silence or an error.
+
+Write the results into PROTOCOL.md (change "unverified" to "observed").
+
+## Writing style for docs in this repo
+
+- No em dashes. Use a comma or a period.
+- Plain, first-person voice in the README ("I built this for my own amp").

@@ -2,6 +2,7 @@
   "domain": "monoprice_8zone",
   "name": "Monoprice 8-Zone Amplifier (44518)",
   "codeowners": ["@JohnPeltonen"],
+  "config_flow": true,
   "dependencies": ["usb"],
   "documentation": "https://github.com/JohnPeltonen/ha-monoprice-8zone",
   "integration_type": "hub",

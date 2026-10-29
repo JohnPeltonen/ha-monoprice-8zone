@@ -79,7 +79,7 @@ ZONE_5 = b">1500010000050707100100 Zone5    Source01\r\n#"
   - `set_command(zone: int, field: str, value: int) -> bytes`
   - `find_status(data: bytes) -> ZoneStatus | None`
 
-- [ ] **Step 1: Create the skeleton**
+- [x] **Step 1: Create the skeleton**
 
 `manifest.json`, with keys in hassfest's required order (domain, name, then alphabetical):
 
@@ -104,12 +104,12 @@ ZONE_5 = b">1500010000050707100100 Zone5    Source01\r\n#"
 - `requirements_test.txt`: `pytest`, `pytest-asyncio`, `serialx==1.11.0`, one per line.
 - `tests/amp/conftest.py`: inserts `<repo>/custom_components/monoprice_8zone` at the front of `sys.path`, with a one-line comment saying why (the package's `__init__.py` imports `homeassistant` from Phase 2 on, so the tests load `amp.py` on its own).
 
-- [ ] **Step 2: Create the virtual environment**
+- [x] **Step 2: Create the virtual environment**
 
 Run: `py -3.14 -m venv .venv` then `.venv/Scripts/python -m pip install -r requirements_test.txt`
 Expected: pytest, pytest-asyncio and serialx 1.11.0 install without errors.
 
-- [ ] **Step 3: Write the failing tests** in `tests/amp/test_replies.py`
+- [x] **Step 3: Write the failing tests** in `tests/amp/test_replies.py`
 
 ```python
 CAPTURED_STATUS = ZoneStatus(
@@ -155,22 +155,22 @@ def test_find_status_ignores_odd_bytes_in_names():
     assert find_status(b">1100010000100707100200 K\xfcche\x00  Source02\r\n#") == CAPTURED_STATUS
 ```
 
-- [ ] **Step 4: Run the tests to verify they fail**
+- [x] **Step 4: Run the tests to verify they fail**
 
 Run: `.venv/Scripts/python -m pytest tests/amp/test_replies.py -v`
 Expected: FAIL with `ImportError` (the names don't exist yet).
 
-- [ ] **Step 5: Implement the field codes, `ZoneStatus`, `status_command`, `set_command` and `find_status` in `amp.py`**
+- [x] **Step 5: Implement the field codes, `ZoneStatus`, `status_command`, `set_command` and `find_status` in `amp.py`**
 
 - `find_status` searches `data` with `rb">1([1-8])(\d{20})[^#]*#"`. The captured digit is the zone. The 20 digits split into ten two-digit fields in PROTOCOL.md's order: PA, PR, MU, DT, VO, TR, BS, BL, CH, LS. Zones 21 and up never match.
 - The builders raise `ValueError` for a zone outside 1 to 8, an unknown field, or a value outside `FIELD_RANGES`.
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `.venv/Scripts/python -m pytest tests/amp -v`
 Expected: all PASS.
 
-- [ ] **Step 7: Commit and push**
+- [x] **Step 7: Commit and push**
 
 ```bash
 git add custom_components pyproject.toml requirements_test.txt tests
@@ -188,7 +188,7 @@ git push origin main
 **Interfaces:**
 - Consumes: `requirements_test.txt`, `pyproject.toml` and `manifest.json` from Task 1.
 
-- [ ] **Step 1: Write `tests.yaml`**
+- [x] **Step 1: Write `tests.yaml`**
 
 ```yaml
 name: Tests
@@ -209,7 +209,7 @@ jobs:
       - run: pytest -v
 ```
 
-- [ ] **Step 2: Write `hassfest.yaml`**
+- [x] **Step 2: Write `hassfest.yaml`**
 
 ```yaml
 name: Hassfest
@@ -226,7 +226,7 @@ jobs:
       - uses: home-assistant/actions/hassfest@master
 ```
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
 ```bash
 git add .github
@@ -234,7 +234,7 @@ git commit .github -m "Add test and hassfest workflows"
 git push origin main
 ```
 
-- [ ] **Step 4: Watch both runs**
+- [x] **Step 4: Watch both runs**
 
 Run: `gh run list --limit 2`, then `gh run watch <run-id> --exit-status` for each run.
 Expected: both succeed. On a failure, read `gh run view <run-id> --log-failed`, fix it, and push again. If the same failure survives three pushes, stop and report to the owner.
@@ -258,9 +258,9 @@ Expected: both succeed. On a failure, read `gh run view <run-id> --log-failed`, 
   - `fake_amp.FakeTransport(protocol: asyncio.Protocol, replies: list[bytes | list[bytes] | None])`. Each `write()` appends the bytes to `writes` and to `log` as `("write", data)`, then delivers the next scripted reply with `loop.call_soon`: `bytes` as one piece, a `list[bytes]` one piece per event-loop pass (the callback that delivers a piece schedules the next one with `call_soon`, so the reader wakes between pieces), or `None` for silence. When the script runs out, it stays silent. Each delivered piece is appended to `log` as `("read", piece)`. `close()` sets `closed = True` and calls `protocol.connection_lost(None)` soon. It keeps the protocol as `protocol`.
   - Fixture `make_amp(*replies) -> tuple[Amp, FakeTransport]` in `conftest.py`.
 
-- [ ] **Step 1: Write `fake_amp.py` and the `make_amp` fixture**
+- [x] **Step 1: Write `fake_amp.py` and the `make_amp` fixture**
 
-- [ ] **Step 2: Write the failing tests** in `tests/amp/test_queries.py`
+- [x] **Step 2: Write the failing tests** in `tests/amp/test_queries.py`
 
 ```python
 async def test_query_zone_returns_status(make_amp):
@@ -312,24 +312,24 @@ async def test_query_zones_fails_when_no_zone_answers(make_amp, monkeypatch):
         await amp.query_zones([1, 2])
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `.venv/Scripts/python -m pytest tests/amp/test_queries.py -v`
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 4: Implement `AmpProtocol`, the exceptions, `Amp.query_zone` and `Amp.query_zones`**
+- [x] **Step 4: Implement `AmpProtocol`, the exceptions, `Amp.query_zone` and `Amp.query_zones`**
 
 - Sending: inside the lock, raise `PortFailedError` if `protocol.lost`; clear `protocol.buffer` (stray bytes); log the bytes at debug; write.
 - Reading: loop until a condition on `protocol.buffer` is true. Before each wait, raise `PortFailedError` if `protocol.lost`, and raise `AmpTimeoutError` if the deadline has passed. Clear the wake-up event and wait on it for the time left. Don't `await` between checking the condition and clearing the event.
 - `query_zone` takes the lock and calls a private `_query_locked(zone)`, so `set_value` (Task 4) can query without taking the lock twice. `_query_locked` reads until `find_status(buffer)` returns a status. A status for another zone raises `BadReplyError`.
 - `query_zones` calls `query_zone` for each zone, so other commands can run between zones. `AmpTimeoutError` and `BadReplyError` give `None` for that zone, logged at debug. If every zone asked about is `None`, it raises `AmpTimeoutError`. `PortFailedError` passes through.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `.venv/Scripts/python -m pytest tests/amp -v`
 Expected: all PASS.
 
-- [ ] **Step 6: Commit and push**
+- [x] **Step 6: Commit and push**
 
 ```bash
 git add custom_components tests
@@ -349,7 +349,7 @@ git push origin main
 - Consumes: `set_command`, field codes (Task 1); `Amp._query_locked`, the send and read helpers, `make_amp` (Task 3).
 - Produces: `SET_REPLY_TIMEOUT = 0.5`; `async def Amp.set_value(self, zone: int, field: str, value: int) -> ZoneStatus`.
 
-- [ ] **Step 1: Write the failing tests** in `tests/amp/test_commands.py`
+- [x] **Step 1: Write the failing tests** in `tests/amp/test_commands.py`
 
 ```python
 async def test_set_value_waits_for_hash_then_queries(make_amp):
@@ -376,21 +376,21 @@ async def test_set_value_rejects_bad_values(make_amp):
     assert transport.writes == []
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `.venv/Scripts/python -m pytest tests/amp/test_commands.py -v`
 Expected: FAIL with `AttributeError` (no `set_value`).
 
-- [ ] **Step 3: Implement `Amp.set_value`**
+- [x] **Step 3: Implement `Amp.set_value`**
 
 Build the command before taking the lock, so bad input raises `ValueError` without touching the port. Inside the lock: send, then read until `#` is in the buffer. On `AmpTimeoutError`, log `"No # after %r"` at debug and carry on. Then return `_query_locked(zone)`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `.venv/Scripts/python -m pytest tests/amp -v`
 Expected: all PASS.
 
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
 
 ```bash
 git add custom_components tests
@@ -410,7 +410,7 @@ git push origin main
 - Consumes: the send helper, `PortFailedError`, `make_amp` (Task 3).
 - Produces: `RAW_QUIET_GAP = 0.3`, `RAW_TIMEOUT = 2.0`; `async def Amp.send_raw(self, command: str) -> bytes`.
 
-- [ ] **Step 1: Write the failing tests** in `tests/amp/test_commands.py`
+- [x] **Step 1: Write the failing tests** in `tests/amp/test_commands.py`
 
 ```python
 async def test_send_raw_returns_everything_until_quiet(make_amp, monkeypatch):
@@ -443,22 +443,22 @@ async def test_send_raw_port_failure(make_amp):
         await amp.send_raw("?11")
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `.venv/Scripts/python -m pytest tests/amp/test_commands.py -v`
 Expected: the new tests FAIL with `AttributeError`.
 
-- [ ] **Step 3: Implement `Amp.send_raw`**
+- [x] **Step 3: Implement `Amp.send_raw`**
 
 - Accept only commands whose first character is `?` or `<`, that are printable (`str.isprintable()`, so no CR, LF or other control characters), and that encode as ASCII. Anything else raises `ValueError` before the lock. (`UnicodeEncodeError` is a `ValueError`.)
 - Inside the lock, send `command` plus `\r`. Then wait for new bytes. Before the first byte, the wait is limited only by the `RAW_TIMEOUT` deadline. After a byte has arrived, each wait is also limited to `RAW_QUIET_GAP`. Before each wait, raise `PortFailedError` if `protocol.lost`. Stop at the first wait that times out, and return everything in the buffer. Silence returns `b""`; it is not an error.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `.venv/Scripts/python -m pytest tests/amp -v`
 Expected: all PASS.
 
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
 
 ```bash
 git commit custom_components tests -m "Add raw commands to the amp code"
@@ -477,7 +477,7 @@ git push origin main
 - Consumes: `Amp`, `AmpProtocol`, `PortFailedError` (Task 3); `fake_amp.FakeTransport`.
 - Produces: `BAUD_RATE = 9600`; `class PortInUseError(AmpError)`, `class PortNotFoundError(AmpError)`; `async def open_amp(port: str) -> Amp`; `async def Amp.close(self) -> None`. In the tests: `FakeTransport.write_error: OSError | None` (default `None`), raised by `write()` when set.
 
-- [ ] **Step 1: Write the failing tests** in `tests/amp/test_connection.py`
+- [x] **Step 1: Write the failing tests** in `tests/amp/test_connection.py`
 
 ```python
 def fake_opener(calls, replies):
@@ -550,24 +550,24 @@ async def test_command_after_close_is_not_a_port_failure(make_amp):
     assert not isinstance(caught.value, PortFailedError)
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `.venv/Scripts/python -m pytest tests/amp/test_connection.py -v`
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement `open_amp` and `Amp.close`**
+- [x] **Step 3: Implement `open_amp` and `Amp.close`**
 
 - `open_amp` calls `serialx.create_serial_connection(asyncio.get_running_loop(), AmpProtocol, port, baudrate=BAUD_RATE)`. Its defaults are already no parity, 1 stop bit, no flow control and exclusive access. It turns `OSError` with `errno.EBUSY` into `PortInUseError`, and `errno.ENOENT`, `errno.ENODEV` or `errno.ENXIO` into `PortNotFoundError` (both `from exc`). Any other `OSError` passes through unchanged.
 - `close` takes the lock, so it never closes in the middle of a command. It sets `self._closed`, calls `transport.close()` and waits for `protocol.closed`.
 - The send helper checks `self._closed` first and raises a plain `AmpError("The connection is closed")`. A command that arrives after unload, such as the rest of a poll, then isn't mistaken for a port failure. `PortFailedError` stays reserved for real failures, because Phase 2 reloads the integration when it sees one.
 - The send helper also turns an `OSError` from `transport.write()` into `PortFailedError(...) from exc`. serialx's `write()` raises when the port has just failed, before `connection_lost` arrives.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `.venv/Scripts/python -m pytest tests/amp -v`
 Expected: all PASS.
 
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
 
 ```bash
 git add custom_components tests
@@ -579,28 +579,35 @@ git push origin main
 
 ### Task 7: Phase 1 review
 
-- [ ] **Step 1: Dispatch the reviewer**
+- [x] **Step 1: Dispatch the reviewer**
 
 A fresh reviewer agent on the most capable model gets the design doc, PROTOCOL.md, this plan, and the Phase 1 changes (`git diff 960f65c..HEAD`). It reports correctness bugs and mismatches with the spec, each with a file and line and a concrete failure. It gets the code, not Claude's opinion of it.
 
-- [ ] **Step 2: Fix confirmed findings**
+- [x] **Step 2: Fix confirmed findings**
 
 Each fix starts with a failing test. A finding that isn't in this plan and doesn't break a spec guarantee goes in the Later list, not into a fix round.
 
-- [ ] **Step 3: Re-review, within the fix-loop limits**
+- [x] **Step 3: Re-review, within the fix-loop limits**
 
 Up to two rounds of re-review on the same findings, then one round with a fresh reviewer, then park what's left with a ruling. Four rounds at most.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `.venv/Scripts/python -m pytest tests/amp -v`, push, then watch both workflows with `gh run watch <run-id> --exit-status`.
 Expected: all tests PASS locally, and both workflows succeed.
 
-- [ ] **Step 5: Close out the plan**
+- [x] **Step 5: Close out the plan**
 
 Tick the checkboxes, update the Later list, and commit the plan.
 
 ---
+
+## What changed during the build
+
+- Task 1 added two field-order tests. The captured reply repeats values (treble and bass are both 7; page, mute and Do Not Disturb are all 0), so swapped fields passed every planned test.
+- `find_status` takes `bytes | bytearray` and an optional zone. `AmpProtocol.wait_for_change(timeout) -> bool` holds the wake-up wait, so nothing can await between the check and the clear.
+- The final review found that one late reply could fail the rest of a poll. A query now skips status lines about other zones, and `BadReplyError` is gone. design.md was updated to match.
+- The final review also asked for two guard tests, now added. A port failure during a poll comes through as `PortFailedError`. `close()` waits for a command in progress.
 
 ## Later
 
@@ -609,6 +616,15 @@ Things that came up but are outside this phase:
 - Add a short "Development" section to the README explaining how to run the amp tests locally.
 - Phase 2: add a root `tests/conftest.py` that skips the HA tests when `homeassistant` isn't installed, so a bare `pytest` works on Windows.
 - Phase 2: HA test files need names that don't repeat the amp tests' file names, because pytest's default import mode can't tell two `test_x.py` files apart.
+- Phase 2: HA tests import `custom_components.monoprice_8zone.amp`, never `amp`. `tests/amp/conftest.py` puts the integration folder on `sys.path` for the whole test run, so the module could load twice, each copy with its own exception classes. For the same reason, don't name a platform file after a standard-library module, such as `select.py` or `calendar.py`.
+- Phase 2: if setup or the config flow's port check fails after `open_amp` succeeded (for example when no zone answers), close the amp before raising. Otherwise the open connection keeps the port's lock, and every retry reports "port in use" against the integration's own connection.
+- Phase 2: round volume and tone values before calling `set_value`. `set_command` truncates (`37.9` sends `37`).
+- Phase 2: volume up/down on rapid presses works from state that hasn't refreshed yet.
+- Phase 2, optional: an `AmpClosedError(AmpError)` subclass, so "closed on purpose" can be caught by name.
+- Test gaps from the final review. The code is correct today; these tests would catch a regression:
+  - `test_set_value_without_hash_still_queries` doesn't prove the 0.5-second limit.
+  - `send_raw` collecting past a `#` has no test, and the `?10` hardware check depends on it. Neither does waiting up to `RAW_TIMEOUT` for the first byte.
+  - No test checks `open_amp`'s serial settings (no XON/XOFF, exclusive access).
 
 ## Remaining phases
 

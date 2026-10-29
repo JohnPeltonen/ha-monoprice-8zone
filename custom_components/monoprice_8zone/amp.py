@@ -39,6 +39,10 @@ STATUS_PATTERN = re.compile(rb">1([1-8])(\d{20})[^#]*#")
 STATUS_TIMEOUT = 1.0
 # Seconds to wait for the "#" the amp sends after a set command.
 SET_REPLY_TIMEOUT = 0.5
+# A raw command collects what the amp sends until it has been quiet for RAW_QUIET_GAP seconds,
+# or until RAW_TIMEOUT seconds have passed.
+RAW_QUIET_GAP = 0.3
+RAW_TIMEOUT = 2.0
 
 
 @dataclass(frozen=True)
@@ -130,14 +134,15 @@ class AmpProtocol(asyncio.Protocol):
             self.closed.set_result(None)
         self._changed.set()
 
-    async def wait_for_change(self, timeout: float) -> None:
-        """Wait until bytes arrive or the port closes, or until timeout seconds pass."""
+    async def wait_for_change(self, timeout: float) -> bool:
+        """Wait until bytes arrive or the port closes. Return False if timeout seconds pass first."""
         self._changed.clear()
         try:
             async with asyncio.timeout(timeout):
                 await self._changed.wait()
         except TimeoutError:
-            pass
+            return False
+        return True
 
 
 class Amp:
@@ -175,6 +180,26 @@ class Amp:
             except AmpTimeoutError:
                 logger.debug("No # after %r", command)
             return await self._query_locked(zone)
+
+    async def send_raw(self, command: str) -> bytes:
+        """Send one ? or < command and return whatever the amp sends back, which may be nothing."""
+        # A CR or LF inside the text would start a second command, and a bare number like
+        # 19200 changes the amp's baud rate until it's power cycled.
+        if command[:1] not in ("?", "<") or not command.isprintable():
+            raise ValueError("Send one command that starts with ? or <")
+        data = command.encode("ascii") + b"\r"
+        async with self._lock:
+            self._send(data)
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + RAW_TIMEOUT
+            while True:
+                if self._protocol.lost:
+                    raise PortFailedError("The serial port closed while waiting for a reply")
+                wait = deadline - loop.time()
+                if self._protocol.buffer:
+                    wait = min(wait, RAW_QUIET_GAP)
+                if wait <= 0 or not await self._protocol.wait_for_change(wait):
+                    return bytes(self._protocol.buffer)
 
     async def _query_locked(self, zone: int) -> ZoneStatus:
         self._send(status_command(zone))

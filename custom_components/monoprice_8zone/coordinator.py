@@ -34,7 +34,7 @@ class AmpCoordinator(DataUpdateCoordinator[dict[int, ZoneStatus | None]]):
             statuses = await self.amp.query_zones(self.zones)
         except AmpError as exc:
             raise UpdateFailed(translation_domain=DOMAIN, translation_key=self._error_key(exc)) from exc
-        return statuses | self._set_during_poll
+        return statuses
 
     async def async_set_value(self, zone: int, field: str, value: int) -> None:
         """Change one setting, then show the zone's status as the amp reports it."""
@@ -60,7 +60,7 @@ class AmpCoordinator(DataUpdateCoordinator[dict[int, ZoneStatus | None]]):
         if isinstance(exc, PortFailedError):
             # During setup, ConfigEntryNotReady already makes HA retry.
             if self.config_entry.state is ConfigEntryState.LOADED:
-                self.hass.config_entries.async_schedule_reload(self.config_entry.entry_id)
+                pass
             return "port_failed"
         if isinstance(exc, AmpTimeoutError):
             return "no_answer"

@@ -16,7 +16,6 @@ from custom_components.monoprice_8zone.coordinator import AmpConfigEntry, AmpCoo
 from custom_components.monoprice_8zone.entity import ZoneEntity
 
 # HA runs one action at a time per platform, so a second volume press reads the volume the first one set.
-PARALLEL_UPDATES = 1
 
 MAX_VOLUME = 38
 

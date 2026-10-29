@@ -106,7 +106,7 @@ UI text used across tasks (Task 2 adds the `exceptions` section, later tasks add
 **Files:**
 - Modify: `tests/amp/test_commands.py`, `tests/amp/test_connection.py`. No production code changes.
 
-- [ ] **Step 1: Add the guard tests**
+- [x] **Step 1: Add the guard tests**
 
 In `test_commands.py`, time the call in `test_set_value_without_hash_still_queries` (it already shortens `SET_REPLY_TIMEOUT` to 0.05 s):
 
@@ -135,12 +135,12 @@ async def test_send_raw_waits_for_a_slow_first_byte(make_amp, monkeypatch):
 
 In `test_connection.py`, `fake_opener` records `(url, baudrate, kwargs)`, and `test_open_amp_opens_the_port_at_9600` asserts `calls == [("/dev/ttyUSB0", 9600, {})]`: `open_amp` passes nothing that would override serialx's defaults (8N1, no flow control, exclusive use).
 
-- [ ] **Step 2: Run the tests**
+- [x] **Step 2: Run the tests**
 
 Run: `.venv/Scripts/python -m pytest -v`
 Expected: 57 passed. These tests guard code that already works.
 
-- [ ] **Step 3: Prove each test catches its regression**
+- [x] **Step 3: Prove each test catches its regression**
 
 The code is already correct, so each test's failing run comes from a deliberate break, applied and undone with the Phase 1 `mutate.py` in the scratchpad. Each break must fail the named test:
 
@@ -154,7 +154,7 @@ The code is already correct, so each test's failing run comes from a deliberate 
 
 Expected: all five killed, and `amp.py` restored byte for byte.
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
 ```bash
 git commit tests/amp -m "Close the amp test gaps from the Phase 1 review"
@@ -192,7 +192,7 @@ Expected: both workflows pass.
 - `entry`: a `MockConfigEntry`, already added to hass, with title "Monoprice 44518", `data={CONF_PORT: "/dev/ttyUSB0"}` and `options={CONF_ZONES: [1, 2, 3, 4, 5, 6, 7, 8], CONF_SOURCES: {"2": "Sonos", "5": "TV"}}`.
 - `set_up`: returns `async def set_up() -> None`, which sets the entry up, asserts that worked, and waits for HA to finish (`hass.async_block_till_done()`). It requests `amp` and `entry`, so a test can change the amp before calling it.
 
-- [ ] **Step 1: Split CI and add the HA test setup**
+- [x] **Step 1: Split CI and add the HA test setup**
 
 - `requirements_test_ha.txt`: `pytest-homeassistant-custom-component==0.13.371`, `serialx==1.11.0`, `aiousbwatcher==1.1.2`, with a comment on why each is there.
 - `pyproject.toml`: add `pythonpath = ["."]` with the reason as a comment.
@@ -200,7 +200,7 @@ Expected: both workflows pass.
 - `.github/workflows/tests.yaml`: two jobs, same triggers. Each: `actions/checkout@v7`, then `actions/setup-python@v7` with Python 3.14, `cache: pip` and its requirements file as `cache-dependency-path`. "Amp tests" runs `pip install -r requirements_test.txt` and `pytest -v`. "Home Assistant tests" runs `pip install -r requirements_test_ha.txt` and `pytest tests/ha -v`.
 - `tests/ha/simulated_amp.py` and `tests/ha/conftest.py`, as above.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `tests/test_translations.py`:
 
@@ -289,12 +289,12 @@ async def test_set_during_a_poll_is_kept(hass, amp, entry, set_up):
 
 The two tests that need the 30-second timer are in Task 3: the coordinator only starts its timer once an entity listens to it.
 
-- [ ] **Step 3: Run what runs locally**
+- [x] **Step 3: Run what runs locally**
 
 Run: `.venv/Scripts/python -m compileall -q custom_components tests`, then `.venv/Scripts/python -m pytest -v`
 Expected: no output from `compileall`. `test_translations_match_strings` FAILS with `FileNotFoundError` (no `strings.json` yet); the 57 amp tests pass; `tests/ha` is left out.
 
-- [ ] **Step 4: Commit and push the tests**
+- [x] **Step 4: Commit and push the tests**
 
 ```bash
 git commit requirements_test_ha.txt pyproject.toml .github/workflows/tests.yaml tests -m "Add the HA test setup and the setup and unload tests (they fail until the next commit)"
@@ -303,7 +303,7 @@ git push origin main
 
 Don't wait for the run. Expected, checked in Step 7: "Amp tests" fails only on `test_translations_match_strings`; "Home Assistant tests" fails because `custom_components.monoprice_8zone.const` doesn't exist; hassfest passes.
 
-- [ ] **Step 5: Implement setup, unload and the coordinator**
+- [x] **Step 5: Implement setup, unload and the coordinator**
 
 - `manifest.json`: add `"single_config_entry": true` between `requirements` and `version`.
 - `const.py` as in Interfaces.
@@ -317,7 +317,7 @@ Don't wait for the run. Expected, checked in Step 7: "Amp tests" fails only on `
   - `async_unload_entry` returns `await hass.config_entries.async_unload_platforms(entry, PLATFORMS)`. The port closes through `async_on_unload`, after the platforms are gone.
 - `strings.json` and `translations/en.json`: an `exceptions` section with the five keys and texts in the table above, each as `{"message": text}`.
 
-- [ ] **Step 6: Verify and push**
+- [x] **Step 6: Verify and push**
 
 Run: `compileall` and `pytest` as in Step 3.
 Expected: 58 passed.
@@ -327,7 +327,7 @@ git commit custom_components -m "Set up and unload the integration, and poll the
 git push origin main
 ```
 
-- [ ] **Step 7: Check both runs**
+- [x] **Step 7: Check both runs**
 
 Expected: the tests-only run failed as Step 4 says. This run passes both workflows, with every test in `tests/ha/test_init.py` passing.
 
@@ -360,7 +360,7 @@ The media player:
 - `volume_set` sends `round(volume_level * 38)`. `volume_up` and `volume_down` send one amp step from the current `volume`, kept within 0 to 38. `volume_mute`, `turn_on`, `turn_off` and `select_source` send `MU`, `PR` and `CH`. A source name that isn't in the list raises `ServiceValidationError` with `unknown_source`.
 - Each action is one `await self.coordinator.async_set_value(self.zone, field, value)`.
 
-- [ ] **Step 1: Write the failing tests** in `tests/ha/test_media_player.py`
+- [x] **Step 1: Write the failing tests** in `tests/ha/test_media_player.py`
 
 ```python
 ZONE_1 = "media_player.zone_1"
@@ -505,7 +505,7 @@ async def test_port_failure_reloads_and_waits_for_the_port(hass, amp, entry, set
     assert entry.state is ConfigEntryState.LOADED
 ```
 
-- [ ] **Step 2: Commit and push the tests**
+- [x] **Step 2: Commit and push the tests**
 
 Run `compileall` and `pytest` first (Global Constraints).
 
@@ -516,9 +516,9 @@ git push origin main
 
 Don't wait for the run. Expected, checked in Step 4: the new tests fail (no `media_player.zone_1`, no devices, and no poll timer without an entity); the Task 2 tests still pass.
 
-- [ ] **Step 3: Implement** `entity.py`, `media_player.py`, the amp device and the removal of disabled zones' devices in `__init__.py`, `Platform.MEDIA_PLAYER` in `PLATFORMS`, and the `unknown_source` text in both strings files.
+- [x] **Step 3: Implement** `entity.py`, `media_player.py`, the amp device and the removal of disabled zones' devices in `__init__.py`, `Platform.MEDIA_PLAYER` in `PLATFORMS`, and the `unknown_source` text in both strings files.
 
-- [ ] **Step 4: Verify and push, then check both runs**
+- [x] **Step 4: Verify and push, then check both runs**
 
 ```bash
 git commit custom_components -m "Add a device for each zone, and its media player"
@@ -549,7 +549,7 @@ Expected: the tests-only run failed as Step 2 says; this run passes both workflo
 
 All three: step 1, `NumberMode.SLIDER`, `entity_category=EntityCategory.CONFIG`. The switch's name is "Do Not Disturb". Names go in the `entity` section of both strings files.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/ha/test_switch.py`:
 
@@ -601,7 +601,7 @@ async def test_numbers_are_configuration_entities(hass, set_up, entity_registry)
         assert entity_registry.async_get(f"number.zone_1_{name}").entity_category is EntityCategory.CONFIG
 ```
 
-- [ ] **Step 2: Commit and push the tests, without waiting for the run**
+- [x] **Step 2: Commit and push the tests, without waiting for the run**
 
 ```bash
 git commit tests/ha -m "Add the Do Not Disturb and slider tests (they fail until the next commit)"
@@ -610,9 +610,9 @@ git push origin main
 
 Expected, checked in Step 4: the new tests fail (no such entities); the earlier ones pass.
 
-- [ ] **Step 3: Implement** `switch.py`, `number.py`, `Platform.NUMBER` and `Platform.SWITCH` in `PLATFORMS`, and the entity names.
+- [x] **Step 3: Implement** `switch.py`, `number.py`, `Platform.NUMBER` and `Platform.SWITCH` in `PLATFORMS`, and the entity names.
 
-- [ ] **Step 4: Verify and push, then check both runs**
+- [x] **Step 4: Verify and push, then check both runs**
 
 ```bash
 git commit custom_components -m "Add the Do Not Disturb switch and the bass, treble and balance sliders"
@@ -657,7 +657,7 @@ UI text, in the `config` section of both strings files:
 
 HA supplies the "only one amp" abort text (`single_instance_allowed`) itself.
 
-- [ ] **Step 1: Write the failing tests** in `tests/ha/test_config_flow.py`
+- [x] **Step 1: Write the failing tests** in `tests/ha/test_config_flow.py`
 
 ```python
 def suggested(result) -> dict[str, Any]:
@@ -732,7 +732,7 @@ async def test_only_one_amp(hass, amp, entry):
     assert (result["type"], result["reason"]) == (FlowResultType.ABORT, "single_instance_allowed")
 ```
 
-- [ ] **Step 2: Commit and push the tests, without waiting for the run**
+- [x] **Step 2: Commit and push the tests, without waiting for the run**
 
 ```bash
 git commit tests/ha -m "Add the setup screen tests (they fail until the next commit)"
@@ -741,9 +741,9 @@ git push origin main
 
 Expected, checked in Step 4: the new tests fail (the integration has no config flow); the earlier ones pass.
 
-- [ ] **Step 3: Implement** `config_flow.py` as in Interfaces, `"config_flow": true` in the manifest between `codeowners` and `dependencies` (same commit as `config_flow.py`, or hassfest fails), and the `config` text in both strings files.
+- [x] **Step 3: Implement** `config_flow.py` as in Interfaces, `"config_flow": true` in the manifest between `codeowners` and `dependencies` (same commit as `config_flow.py`, or hassfest fails), and the `config` text in both strings files.
 
-- [ ] **Step 4: Verify and push, then check both runs**
+- [x] **Step 4: Verify and push, then check both runs**
 
 ```bash
 git commit custom_components -m "Add the setup screens: port, zones and sources"
@@ -769,7 +769,7 @@ Expected: the tests-only run failed as Step 2 says; this run passes both workflo
 
 UI text: `config.step.reconfigure.title` "Change the serial port", with the same `data` and `data_description` as the user step. `options.step.init` has the zones step's title, description and labels; `options.error.no_zones` as in Task 5. HA supplies the "reconfigure successful" text itself.
 
-- [ ] **Step 1: Write the failing tests** in `tests/ha/test_config_flow.py`
+- [x] **Step 1: Write the failing tests** in `tests/ha/test_config_flow.py`
 
 ```python
 @pytest.fixture
@@ -843,7 +843,7 @@ async def test_options_need_a_zone(hass, entry, set_up):
     assert (result["step_id"], result["errors"]) == ("init", {CONF_ZONES: "no_zones"})
 ```
 
-- [ ] **Step 2: Commit and push the tests, without waiting for the run**
+- [x] **Step 2: Commit and push the tests, without waiting for the run**
 
 ```bash
 git commit tests/ha -m "Add the reconfigure and options tests (they fail until the next commit)"
@@ -852,9 +852,9 @@ git push origin main
 
 Expected, checked in Step 4: the new tests fail (no reconfigure step, no options flow); the earlier ones pass.
 
-- [ ] **Step 3: Implement** the reconfigure step, the options flow and their text.
+- [x] **Step 3: Implement** the reconfigure step, the options flow and their text.
 
-- [ ] **Step 4: Verify and push, then check both runs**
+- [x] **Step 4: Verify and push, then check both runs**
 
 ```bash
 git commit custom_components -m "Add reconfigure for the port, and options for zones and sources"
@@ -881,7 +881,7 @@ Expected: the tests-only run failed as Step 2 says; this run passes both workflo
 
 UI text: `services.send_command.name` "Send command"; `description` "Sends a raw command to the amp and returns the amp's raw reply. For testing the amp from Developer Tools."; `fields.command.name` "Command"; `fields.command.description` "The command without the carriage return, for example ?11 or <11MU01. Only commands that start with ? or < are sent." Exceptions: `not_loaded` "The integration isn't set up yet, or it's waiting for the amp."; `bad_command` "Send one command that starts with ? or <, for example ?11."
 
-- [ ] **Step 1: Write the failing tests** in `tests/ha/test_send_command.py`
+- [x] **Step 1: Write the failing tests** in `tests/ha/test_send_command.py`
 
 ```python
 async def send(hass, command):
@@ -920,7 +920,7 @@ async def test_send_command_needs_the_integration_loaded(hass, entry, set_up):
     assert caught.value.translation_key == "not_loaded"
 ```
 
-- [ ] **Step 2: Commit and push the tests, without waiting for the run**
+- [x] **Step 2: Commit and push the tests, without waiting for the run**
 
 ```bash
 git commit tests/ha -m "Add the send_command tests (they fail until the next commit)"
@@ -929,9 +929,9 @@ git push origin main
 
 Expected, checked in Step 4: the new tests fail with `ServiceNotFound`; the earlier ones pass.
 
-- [ ] **Step 3: Implement** `services.py`, `services.yaml`, `async_setup` and `CONFIG_SCHEMA`, `async_send_raw`, and the text.
+- [x] **Step 3: Implement** `services.py`, `services.yaml`, `async_setup` and `CONFIG_SCHEMA`, `async_send_raw`, and the text.
 
-- [ ] **Step 4: Verify and push, then check both runs**
+- [x] **Step 4: Verify and push, then check both runs**
 
 ```bash
 git commit custom_components -m "Add the send_command action"
@@ -947,7 +947,7 @@ Expected: the tests-only run failed as Step 2 says; this run passes both workflo
 **Files:**
 - Modify: `README.md`, `docs/design.md`, `CLAUDE.md`
 
-- [ ] **Step 1: Update the docs**
+- [x] **Step 1: Update the docs**
 
 - `README.md`, in the first-person voice it already has:
   - "Status": the integration is written and its tests pass in GitHub Actions; it hasn't run on my amp yet, and the hardware checks come next.
@@ -957,7 +957,7 @@ Expected: the tests-only run failed as Step 2 says; this run passes both workflo
 - `docs/design.md`: the user-visible decisions from this plan, marked **(Claude's call)** where they belong (at least one zone; the error for a source name that isn't in the list; the "reloading" error; the entry title), and anything the build changed.
 - `CLAUDE.md`, Tests section: the two CI jobs and what each runs, and the local command.
 
-- [ ] **Step 2: Verify and push**
+- [x] **Step 2: Verify and push**
 
 Run: `.venv/Scripts/python -m pytest -q`
 Expected: 58 passed.
@@ -973,34 +973,50 @@ Expected: both workflows pass.
 
 ### Task 9: Phase 2 review
 
-- [ ] **Step 1: Dispatch the reviewer**
+- [x] **Step 1: Dispatch the reviewer**
 
 A fresh reviewer on the most capable model gets the design doc, PROTOCOL.md, this plan with its Review Focus, the ledger's rulings, and the Phase 2 changes (from the commit that adds this plan to `HEAD`). It reports correctness bugs and mismatches with the spec, each with a file and line and a concrete failure. It gets the code, not Claude's opinion of it.
 
-- [ ] **Step 2: Fix confirmed findings**
+- [x] **Step 2: Fix confirmed findings**
 
 Each fix starts with a failing test (for HA code: pushed and seen failing in CI). A finding that isn't in this plan and doesn't break a spec guarantee goes in the Later list, not into a fix round.
 
-- [ ] **Step 3: Re-review, within the fix-loop limits**
+- [x] **Step 3: Re-review, within the fix-loop limits**
 
 Up to two rounds of re-review on the same findings, then one round with a fresh reviewer, then park what's left with a ruling. Four rounds at most.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `.venv/Scripts/python -m pytest -v`, push, then watch both workflows with `gh run watch <run-id> --exit-status`.
 Expected: all tests pass locally, and both workflows succeed.
 
-- [ ] **Step 5: Close out the plan**
+- [x] **Step 5: Close out the plan**
 
 Tick the checkboxes, add "What changed during the build", update the Later list, and commit the plan.
 
 ---
+
+## What changed during the build
+
+- **Task 2.** HA 2026.10 imports an integration's config flow module, and needs its flow class, to set up any config entry. So a minimal `config_flow.py` (the class with `VERSION = 1`) came in Task 2. The screens and the manifest's `config_flow` flag stayed in Task 5.
+- **Task 3.** The first media player dropped a zone that was silent at startup, because HA reads `entity_picture`, and through it `state`, even while an entity is unavailable. `state` now returns `None` when the zone has no status.
+- **Task 3.** `test_select_unknown_source_is_rejected` passed before the media player existed, because HA's "action not found" error is also a `ServiceValidationError`. It now checks the error's key, and that version was pushed as a second tests-only commit so its failure shows in CI.
+- **Task 4.** Two extra tests check that a silent zone's switch and sliders show as unavailable.
+- **Task 5.** `test_only_one_amp` passed before the setup screens existed, because Task 2 had already added `single_config_entry`. Ruled, not broken on purpose: without the flag, HA would show the port form instead of aborting.
+- **Final review.** The "port in use" text now says to restart Home Assistant after deleting the built-in integration, which lets go of the port only on a restart.
+- **Final review.** One commit broke the five behaviors the Review Focus tests guard (bcd7d57, reverted in 220f2cf). Each named test failed on its own break.
 
 ## Later
 
 Things that came up but are outside this phase:
 
 - Poll with `?10`, if the `?10` hardware check passes (design.md, Later).
+- From the final review, all minor. The code works today; these would catch a regression or polish an edge:
+  - No test protects the reset of the set-during-poll statuses at the start of each poll. The `?10` change will rewrite that function, so this test should come first.
+  - After an unplug of more than about 11 minutes, HA's retry backoff can take up to 10 minutes to reconnect once the adapter is back (Reload connects at once). Worth a line in the docs. A fuller fix: reload a retrying entry when the `usb` integration reports a new serial port.
+  - Each successful set restarts the 30-second poll timer, so changes more often than every 30 seconds delay polls until they stop.
+  - No test checks that HA sends no commands to a zone it has marked unavailable.
+  - `ZoneEntity.status` is typed `ZoneStatus` but can be `None`.
 
 ## Remaining phases
 

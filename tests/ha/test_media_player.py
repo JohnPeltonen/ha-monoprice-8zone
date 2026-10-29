@@ -95,8 +95,10 @@ async def test_volume_up_stops_at_the_top(hass, amp, set_up):
 async def test_select_unknown_source_is_rejected(hass, amp, set_up):
     await set_up()
     amp.writes.clear()
-    with pytest.raises(ServiceValidationError):
+    with pytest.raises(ServiceValidationError) as caught:
         await call(hass, "select_source", source="Radio")
+    # HA's "action not found" is a ServiceValidationError too, so check which one this is.
+    assert caught.value.translation_key == "unknown_source"
     assert amp.writes == []
 
 

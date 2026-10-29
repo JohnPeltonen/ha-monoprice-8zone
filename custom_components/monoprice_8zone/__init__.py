@@ -3,12 +3,14 @@
 from homeassistant.const import CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
 
 from custom_components.monoprice_8zone.amp import PortInUseError, PortNotFoundError, open_amp
-from custom_components.monoprice_8zone.const import DOMAIN
+from custom_components.monoprice_8zone.const import CONF_ZONES, DOMAIN
 from custom_components.monoprice_8zone.coordinator import AmpConfigEntry, AmpCoordinator
+from custom_components.monoprice_8zone.entity import zone_device_identifier
 
-PLATFORMS: list[Platform] = []
+PLATFORMS = [Platform.MEDIA_PLAYER]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AmpConfigEntry) -> bool:
@@ -23,6 +25,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: AmpConfigEntry) -> bool:
     coordinator = AmpCoordinator(hass, entry, amp)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+
+    # The amp's own device ties the zone devices together. A zone turned off in the options loses
+    # its device, and HA removes the device's entities with it.
+    device_registry = dr.async_get(hass)
+    device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.entry_id)},
+        manufacturer="Monoprice",
+        model="44518",
+        name="Monoprice 44518",
+    )
+    wanted = {(DOMAIN, entry.entry_id)} | {
+        (DOMAIN, zone_device_identifier(entry.entry_id, zone)) for zone in entry.options[CONF_ZONES]
+    }
+    for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+        if not device.identifiers & wanted:
+            device_registry.async_remove_device(device.id)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

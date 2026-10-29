@@ -10,7 +10,7 @@ from custom_components.monoprice_8zone.const import CONF_ZONES, DOMAIN
 from custom_components.monoprice_8zone.coordinator import AmpConfigEntry, AmpCoordinator
 from custom_components.monoprice_8zone.entity import zone_device_identifier
 
-PLATFORMS = [Platform.MEDIA_PLAYER]
+PLATFORMS = [Platform.MEDIA_PLAYER, Platform.NUMBER, Platform.SWITCH]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AmpConfigEntry) -> bool:

@@ -1,4 +1,22 @@
 {
+  "entity": {
+    "number": {
+      "balance": {
+        "name": "Balance"
+      },
+      "bass": {
+        "name": "Bass"
+      },
+      "treble": {
+        "name": "Treble"
+      }
+    },
+    "switch": {
+      "do_not_disturb": {
+        "name": "Do Not Disturb"
+      }
+    }
+  },
   "exceptions": {
     "closed": {
       "message": "The integration is reloading. Try again in a moment."

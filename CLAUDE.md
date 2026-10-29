@@ -53,8 +53,10 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 - **The owner develops on native Windows, without WSL, and Home Assistant doesn't run on native Windows.** So:
   - Keep the protocol layer (transport, framing, reply parser, command builders) free of `homeassistant` imports, so its tests run locally with plain `pytest` on Windows. This is the fast loop.
   - Everything that imports `homeassistant` (config flow, setup/unload, entities) is tested only in GitHub Actions. Don't try to install or run Home Assistant locally.
-  - First task: add `.github/workflows/tests.yaml` (ubuntu-latest, Python 3.14, runs on push and pull request) and `hassfest.yaml`.
-  - After pushing, check results with `gh run watch` and `gh run view --log-failed`, and fix failures before moving on.
+  - `.github/workflows/tests.yaml` has two jobs (ubuntu-latest, Python 3.14, on push and pull request). "Amp tests" installs `requirements_test.txt` and runs a bare `pytest` (`tests/amp/` and `tests/test_translations.py`). "Home Assistant tests" installs `requirements_test_ha.txt` and runs `pytest tests/ha`. Keep them separate: once the HA test plugin is installed, it applies its checks to every test in the run.
+  - Local command, on Windows: `.venv/Scripts/python -m pytest -v`. It leaves out `tests/ha` when Home Assistant isn't installed.
+  - After pushing, check results with `gh run watch` and `gh run view --log-failed`, and fix failures before moving on. With `-v`, the HA test plugin logs at debug level, so read failures through `grep`.
+- The HA tests use `tests/ha/simulated_amp.py`, a stand-in 44518 that answers commands byte for byte and locks its port as serialx does. They import the integration as `custom_components.monoprice_8zone.*`, never as `amp`.
 - A fake serial transport that replays the captured 44518 reply from PROTOCOL.md; one variant with an echo; one with a timeout.
 - Cover the config flow (including the port-lock error), setup and unload (the port gets closed), and the reply parser.
 

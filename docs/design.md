@@ -64,7 +64,7 @@ It has failed, even if every feature technically works, if:
 ### Connection
 
 - 9600 baud, 8 data bits, no parity, 1 stop bit, no flow control. Commands end with a carriage return (CR, `\r`).
-- One serial connection per config entry. It's opened during setup and closed during unload.
+- One serial connection per config entry. It's opened during setup and closed during unload. It's also closed when setup fails after the port opened (for example when no zone answers), so HA's next try doesn't find the port locked by the integration's own earlier attempt. **(Claude's call)**
 - One command at a time. Every command, including polls, waits behind one `asyncio.Lock`. So commands sent close together, from a slider or an automation, reach the amp in order.
 - Before each command, bytes already waiting from the amp are thrown away, so a late reply can't be mistaken for the next one. **(Claude's call)**
 - Every raw write and read is logged at debug level.
@@ -86,6 +86,7 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 - I remember the 44518 answering a set command with a single `#` and nothing else, so the code reads until `#`. This hasn't been captured yet. The first hardware check confirms it.
 - If no `#` arrives within 0.5 seconds, the code logs that at debug level and carries on. **(Claude's call)**
 - Then the code queries that zone's status and updates HA, so HA shows what the amp actually did. The amp doesn't send the new status by itself.
+- HA runs one command at a time for each type of entity, so a quick second press on volume up starts from the volume the first press set. **(Claude's call)**
 
 ### Polling
 
@@ -93,6 +94,7 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 - The all-zones query (`?10`) isn't used until a hardware check shows the 44518 returns all 8 zones.
 - If a zone doesn't answer during a poll, that zone's entities show as unavailable until it answers again. The other zones carry on. **(Claude's call.** If one zone misbehaves, for example zone 7 or 8 before the hardware checks, the rest of the amp and the `send_command` action still work.)
 - If no zone answers, the poll fails, and every entity shows as unavailable until a poll succeeds.
+- A command from the dashboard can run between two zones of a poll. Its result wins over the poll's older reading of that zone, so HA doesn't put the old value back when the poll ends. **(Claude's call)**
 
 ### Values
 
@@ -130,7 +132,9 @@ When a zone is turned off in the options, its device and entities are removed fr
 ### Adding the integration
 
 1. **Port.** Pick the serial port from a list. The integration opens it and asks zone 1 for its status, to check that the amp answers.
-2. **Zones and sources.** Choose the zones to enable. All 8 are checked to start. Name sources 1 to 6. All names start blank, and a blank name keeps that source out of the source list. **(Claude's call:** two screens, and blank names to start.)
+2. **Zones and sources.** Choose the zones to enable. All 8 are checked to start, and at least one has to stay checked. Name sources 1 to 6. All names start blank, and a blank name keeps that source out of the source list. **(Claude's call:** two screens, blank names to start, and at least one zone.)
+
+The integration's entry is called "Monoprice 44518". **(Claude's call)**
 
 Errors on the port screen:
 
@@ -158,7 +162,9 @@ If the port is in use or missing, or none of the zones answer, setup raises `Con
 
 ### Commands that fail
 
-If the amp doesn't answer a command from the dashboard or an automation, HA shows an error saying the amp didn't answer.
+- If the amp doesn't answer a command from the dashboard or an automation, HA shows an error saying the amp didn't answer.
+- A source name that isn't in the source list, for example from an automation, gets an error that names it. **(Claude's call)**
+- A command that arrives while the integration is reloading says so, instead of showing a generic error. **(Claude's call)**
 
 ## The `send_command` action
 
@@ -192,9 +198,11 @@ The reply parser and the command builders are tested too.
 - Entities: media player features and the volume mapping, Do Not Disturb, and the bass, treble and balance mapping.
 - The `send_command` action's response.
 
+A simulated 44518 answers the integration's commands byte for byte. Like serialx's lock, it refuses to open a port that's already open, which is how the tests show that Reload and a port change never trip over the integration's own connection. **(Claude's call)**
+
 ### GitHub workflows
 
-- `.github/workflows/tests.yaml`: ubuntu-latest, Python 3.14, on every push and pull request.
+- `.github/workflows/tests.yaml`: two jobs on ubuntu-latest with Python 3.14, on every push and pull request. "Amp tests" runs the amp code's tests with plain pytest. "Home Assistant tests" runs the HA side with `pytest-homeassistant-custom-component`, pinned to HA 2026.10.0. They're separate because once that plugin is installed, it applies its checks to every test in the run. **(Claude's call)**
 - `.github/workflows/hassfest.yaml`: HA's manifest checker (`home-assistant/actions/hassfest`).
 
 ## Hardware checks

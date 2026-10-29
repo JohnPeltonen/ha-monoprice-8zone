@@ -46,7 +46,11 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 ## Tests
 
 - pytest with `pytest-homeassistant-custom-component`.
-- Home Assistant doesn't run on native Windows. Run tests in Linux, WSL or macOS, and add `.github/workflows/tests.yaml` (Ubuntu, Python 3.14) so they also run on every push.
+- **The owner develops on native Windows, without WSL, and Home Assistant doesn't run on native Windows.** So:
+  - Keep the protocol layer (transport, framing, reply parser, command builders) free of `homeassistant` imports, so its tests run locally with plain `pytest` on Windows. This is the fast loop.
+  - Everything that imports `homeassistant` (config flow, setup/unload, entities) is tested only in GitHub Actions. Don't try to install or run Home Assistant locally.
+  - First task: add `.github/workflows/tests.yaml` (ubuntu-latest, Python 3.14, runs on push and pull request) and `hassfest.yaml`.
+  - After pushing, check results with `gh run watch` and `gh run view --log-failed`, and fix failures before moving on.
 - A fake serial transport that replays the captured 44518 reply from PROTOCOL.md; one variant with an echo; one with a timeout.
 - Cover the config flow (including the port-lock error), setup and unload (the port gets closed), and the reply parser.
 

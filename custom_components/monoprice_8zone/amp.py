@@ -36,6 +36,17 @@ FIELD_RANGES: dict[str, tuple[int, int]] = {
     SOURCE: (1, 6),
 }
 
+# The ZoneStatus attribute that shows each field's value. Do Not Disturb's own commands never need it.
+STATUS_ATTRIBUTES: dict[str, str] = {
+    POWER: "power",
+    MUTE: "mute",
+    VOLUME: "volume",
+    TREBLE: "treble",
+    BASS: "bass",
+    BALANCE: "balance",
+    SOURCE: "source",
+}
+
 # A status line for one of the MASTER amp's zones (11 to 18), up to the "#" that ends it.
 # The zone and source names between the digits and the "#" are ignored.
 STATUS_PATTERN = re.compile(rb">1([1-8])(\d{20})[^#]*#")
@@ -193,11 +204,17 @@ class Amp:
         """Change one setting, then return the zone's status as the amp reports it."""
         command = set_command(zone, field, value)
         async with self._lock:
-            self._send(command)
+            await self._set_locked(command)
+            status = await self._query_locked(zone)
+            if field == DO_NOT_DISTURB or not status.do_not_disturb or getattr(status, STATUS_ATTRIBUTES[field]) == value:
+                return status
+            # The amp ignores commands for a zone with Do Not Disturb on, so lift it for this one.
+            logger.debug("%r had no effect with Do Not Disturb on, lifting it", command)
             try:
-                await self._read_until(lambda buffer: b"#" in buffer, SET_REPLY_TIMEOUT)
-            except AmpTimeoutError:
-                logger.debug("No # after %r", command)
+                await self._set_locked(set_command(zone, DO_NOT_DISTURB, 0))
+                await self._set_locked(command)
+            finally:
+                await self._set_locked(set_command(zone, DO_NOT_DISTURB, 1))
             return await self._query_locked(zone)
 
     async def send_raw(self, command: str) -> bytes:
@@ -219,6 +236,13 @@ class Amp:
                     wait = min(wait, RAW_QUIET_GAP)
                 if wait <= 0 or not await self._protocol.wait_for_change(wait):
                     return bytes(self._protocol.buffer)
+
+    async def _set_locked(self, command: bytes) -> None:
+        self._send(command)
+        try:
+            await self._read_until(lambda buffer: b"#" in buffer, SET_REPLY_TIMEOUT)
+        except AmpTimeoutError:
+            logger.debug("No # after %r", command)
 
     async def _query_locked(self, zone: int) -> ZoneStatus:
         self._send(status_command(zone))

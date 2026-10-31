@@ -17,6 +17,15 @@ async def test_send_command_returns_the_reply(hass, amp, set_up):
     assert amp.writes == [b"?11\r"]
 
 
+async def test_send_command_does_not_lift_do_not_disturb(hass, amp, set_up):
+    amp.zones[1]["DT"] = 1
+    await set_up()
+    amp.writes.clear()
+    await send(hass, "<11PR00")
+    assert amp.writes == [b"<11PR00\r"]
+    assert amp.zones[1]["PR"] == 1
+
+
 async def test_send_command_when_the_amp_is_silent(hass, amp, set_up):
     await set_up()
     amp.silent_zones = {1}

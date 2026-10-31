@@ -92,6 +92,24 @@ async def test_volume_up_stops_at_the_top(hass, amp, set_up):
     assert amp.zones[1]["VO"] == 38
 
 
+async def test_power_with_do_not_disturb_on(hass, amp, set_up):
+    amp.zones[1]["DT"] = 1
+    await set_up()
+    await call(hass, "turn_off")
+    assert hass.states.get(ZONE_1).state == "off"
+    assert hass.states.get("switch.zone_1_do_not_disturb").state == "on"
+
+
+async def test_volume_with_do_not_disturb_on(hass, amp, set_up):
+    amp.zones[1]["DT"] = 1
+    await set_up()
+    amp.writes.clear()
+    await call(hass, "volume_set", volume_level=0.5)
+    assert amp.writes == [b"<11VO19\r", b"?11\r", b"<11DT00\r", b"<11VO19\r", b"<11DT01\r", b"?11\r"]
+    assert hass.states.get(ZONE_1).attributes["volume_level"] == pytest.approx(19 / 38)
+    assert hass.states.get("switch.zone_1_do_not_disturb").state == "on"
+
+
 async def test_select_unknown_source_is_rejected(hass, amp, set_up):
     await set_up()
     amp.writes.clear()

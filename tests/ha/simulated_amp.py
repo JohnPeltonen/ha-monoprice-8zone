@@ -9,6 +9,8 @@ import re
 COMMAND = re.compile(rb"([?<])1([1-8])(?:([A-Z]{2})(\d{2}))?\r")
 # The fields of a status reply, in PROTOCOL.md's order.
 FIELDS = ("PA", "PR", "MU", "DT", "VO", "TR", "BS", "BL", "CH", "LS")
+# Seen on the real amp: with Do Not Disturb on, these commands change nothing. The other fields haven't been tried.
+IGNORED_WITH_DO_NOT_DISTURB = {"PR", "VO"}
 
 
 class SimulatedAmp:
@@ -44,7 +46,9 @@ class SimulatedAmp:
         zone = int(match[2])
         state = self.zones[zone]
         if match[1] == b"<":
-            state[match[3].decode()] = int(match[4])
+            field = match[3].decode()
+            if not (state["DT"] and field in IGNORED_WITH_DO_NOT_DISTURB):
+                state[field] = int(match[4])
             return b"#"
         digits = "".join(f"{state[field]:02d}" for field in FIELDS)
         return f">1{zone}{digits} Zone{zone}    Source{state['CH']:02d}\r\n#".encode()

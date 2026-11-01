@@ -146,6 +146,19 @@ async def test_options_change_zones_and_sources(hass, entry, set_up, entity_regi
     assert hass.states.get("media_player.zone_1").attributes["source_list"] == ["Radio"]
 
 
+async def test_options_keep_the_limits(hass, entry, set_up):
+    await set_up()
+    await hass.services.async_call(
+        "number", "set_value", {"entity_id": "number.zone_1_maximum_volume", "value": 50}, blocking=True
+    )
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_ZONES: ["1", "2"], "source_3": "Radio"}
+    )
+    await hass.async_block_till_done()
+    assert entry.options["max_volumes"] == {"1": 50}
+
+
 async def test_options_need_a_zone(hass, entry, set_up):
     await set_up()
     result = await hass.config_entries.options.async_init(entry.entry_id)

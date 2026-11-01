@@ -16,6 +16,12 @@ async def call(hass, service, **data):
     await hass.services.async_call("media_player", service, {"entity_id": ZONE_1, **data}, blocking=True)
 
 
+async def set_limit(hass, percent):
+    await hass.services.async_call(
+        "number", "set_value", {"entity_id": "number.zone_1_maximum_volume", "value": percent}, blocking=True
+    )
+
+
 async def test_zone_devices_link_to_the_amp(hass, entry, set_up, device_registry):
     await set_up()
     amp_device = device_registry.async_get_device_by_identifier((DOMAIN, entry.entry_id), entry.entry_id)
@@ -108,6 +114,74 @@ async def test_volume_with_do_not_disturb_on(hass, amp, set_up):
     assert amp.writes == [b"<11VO19\r", b"?11\r", b"<11DT00\r", b"<11VO19\r", b"<11DT01\r", b"?11\r"]
     assert hass.states.get(ZONE_1).attributes["volume_level"] == pytest.approx(19 / 38)
     assert hass.states.get("switch.zone_1_do_not_disturb").state == "on"
+
+
+async def test_slider_top_is_the_limit(hass, amp, set_up):
+    await set_up()
+    await set_limit(hass, 50)
+    amp.writes.clear()
+    await call(hass, "volume_set", volume_level=1.0)
+    assert amp.writes == [b"<11VO19\r", b"?11\r"]
+    assert hass.states.get(ZONE_1).attributes["volume_level"] == 1.0
+
+
+async def test_slider_scales_to_the_limit(hass, amp, set_up):
+    await set_up()
+    await set_limit(hass, 50)
+    assert hass.states.get(ZONE_1).attributes["volume_level"] == pytest.approx(10 / 19)
+    await call(hass, "volume_set", volume_level=0.2)
+    assert amp.zones[1]["VO"] == 4
+
+
+async def test_volume_up_stops_at_the_limit(hass, amp, set_up):
+    amp.zones[1]["VO"] = 19
+    await set_up()
+    await set_limit(hass, 50)
+    await call(hass, "volume_up")
+    assert amp.zones[1]["VO"] == 19
+
+
+@pytest.mark.parametrize(("service", "volume"), [("volume_down", 18), ("volume_up", 19)])
+async def test_zone_above_the_limit(hass, amp, set_up, service, volume):
+    amp.zones[1]["VO"] = 30
+    await set_up()
+    amp.writes.clear()
+    await set_limit(hass, 50)
+    assert amp.writes == []
+    assert amp.zones[1]["VO"] == 30
+    assert hass.states.get(ZONE_1).attributes["volume_level"] == 1.0
+    await call(hass, service)
+    assert amp.zones[1]["VO"] == volume
+
+
+async def test_limit_belongs_to_one_zone(hass, amp, set_up):
+    await set_up()
+    await set_limit(hass, 50)
+    await hass.services.async_call(
+        "media_player", "volume_set", {"entity_id": "media_player.zone_2", "volume_level": 1.0}, blocking=True
+    )
+    assert amp.zones[2]["VO"] == 38
+    await call(hass, "volume_set", volume_level=1.0)
+    assert amp.zones[1]["VO"] == 19
+
+
+async def test_limit_with_do_not_disturb_on(hass, amp, set_up):
+    amp.zones[1]["DT"] = 1
+    await set_up()
+    await set_limit(hass, 50)
+    await call(hass, "volume_set", volume_level=1.0)
+    assert amp.zones[1]["VO"] == 19
+    assert amp.zones[1]["DT"] == 1
+
+
+async def test_limit_survives_a_reload(hass, amp, entry, set_up):
+    await set_up()
+    await set_limit(hass, 50)
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert float(hass.states.get("number.zone_1_maximum_volume").state) == 50
+    await call(hass, "volume_set", volume_level=1.0)
+    assert amp.zones[1]["VO"] == 19
 
 
 async def test_select_unknown_source_is_rejected(hass, amp, set_up):

@@ -60,7 +60,7 @@ Task 1 adds these to design.md.
 - Produces: in `const.py`, `CONF_MAX_VOLUMES = "max_volumes"` and `MAX_VOLUME = 38` (moved from `media_player.py`).
 - Produces: `AmpCoordinator.max_volume_percent(zone: int) -> int`, `AmpCoordinator.volume_limit(zone: int) -> int` (amp steps), and `AmpCoordinator.async_set_max_volume(zone: int, percent: int) -> None`.
 
-- [ ] **Step 1: Add the tests**
+- [x] **Step 1: Add the tests**
 
 In `tests/ha/test_media_player.py`, with a helper that calls `number.set_value` on `number.zone_1_maximum_volume`:
 
@@ -159,11 +159,11 @@ Also in `tests/ha/test_number.py`, `test_limit_is_saved`: set zone 1's limit to 
 
 In `tests/ha/test_config_flow.py`, `test_options_keep_the_limits`: set zone 1's limit to 50, save the options flow with new source names as `test_options_change_zones_and_sources` does, then assert `entry.options["max_volumes"] == {"1": 50}`.
 
-- [ ] **Step 2: Commit the tests and push**
+- [x] **Step 2: Commit the tests and push**
 
 Message: "Add tests for a maximum volume per zone (they fail until the next commit)". Don't wait for the run.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `coordinator.py`: `max_volume_percent` reads `self.config_entry.options.get(CONF_MAX_VOLUMES, {}).get(str(zone), 100)`. `volume_limit` returns `round(percent / 100 * MAX_VOLUME)`. `async_set_max_volume` calls `hass.config_entries.async_update_entry` with a new options dict and a new `max_volumes` dict inside it, then `self.async_update_listeners()`. Never change the nested dict in place: HA saves only if the options compare different.
 - `media_player.py`: `volume_level` is `min(self.status.volume / limit, 1.0)`. `async_set_volume_level` sends `round(volume * limit)`. `async_volume_up` sends `min(self.status.volume + 1, limit)`. `async_volume_down` sends `max(min(self.status.volume, limit) - 1, 0)`.
@@ -171,36 +171,46 @@ Message: "Add tests for a maximum volume per zone (they fail until the next comm
 - `config_flow.py`: the options flow saves `{**self.config_entry.options, **options}`, so the limits survive.
 - Both strings files: `entity.number.max_volume.name` is "Maximum volume".
 
-- [ ] **Step 4: Update the docs**
+- [x] **Step 4: Update the docs**
 
 - `README.md`, What it does: "A maximum volume for each zone, on the zone's device page. The zone's volume slider then runs from 0 to that maximum, so a stray swipe can't go past it. It doesn't limit wall keypads or IR remotes."
 - `docs/design.md`: add the decisions above to the volume mapping and What version 0.1.0 does.
 - `CLAUDE.md`, Entities: add `number` per zone for Maximum volume, stored in the entry's options, not sent to the amp.
 
-- [ ] **Step 5: Run everything local, commit and push**
+- [x] **Step 5: Run everything local, commit and push**
 
 Run: `.venv/Scripts/python -m compileall -q custom_components tests` and `.venv/Scripts/python -m pytest -q`
 Expected: all pass. Message: "Add a maximum volume for each zone".
 
-- [ ] **Step 6: Check both runs**
+- [x] **Step 6: Check both runs**
 
 Run: `gh run watch <run-id> --exit-status` for each.
 Expected: in the tests-only run, "Amp tests" passes and "Home Assistant tests" fails on the new tests. They need the new entity, which doesn't exist yet. The implementation run passes every workflow.
 
 ### Task 2: Final review and the real amp
 
-- [ ] **Step 1: Final review**
+- [x] **Step 1: Final review**
 
 A very capable reviewer reads the diff, this plan and the Review Focus. Findings that break this plan's goal enter one fix pass, each with a failing test first. Anything else goes to Later.
 
-- [ ] **Step 2: Try it on the amp**
+- [x] **Step 2: Try it on the amp**
 
 The owner redownloads the integration in HACS and restarts Home Assistant. On one zone, the owner sets a limit and swipes the volume slider to the top.
 Expected: the sound stops at the limit, the slider sits at 100%, and the limit is still there after another restart.
 
-- [ ] **Step 3: Close out the plan**
+- [x] **Step 3: Close out the plan**
 
 Tick the checkboxes, add "What changed during the build", and commit the plan.
+
+---
+
+## What changed during the build
+
+- **The code matched this plan.** No findings entered a fix pass.
+- **Red run:** the tests-only commit failed on exactly the 12 new HA tests. `test_limit_is_saved` failed with `KeyError: 'core.config_entries'`, because nothing had been saved without the entity. The implementation commit passed 74 amp tests, 71 HA tests and hassfest.
+- **Final review:** no Critical or Important findings. Two minor gaps in docs/design.md are fixed in this commit: the owner's list left out the slider scaling, and the text didn't cover a zone that's off and above its limit, or decision 7.
+- **Not reviewed:** cloud voice services such as Alexa and Google, and rounding at exact halves (25% gives 10 steps and 75% gives 28, a difference under one step).
+- **On the real amp (2026-10-31):** the owner installed the update and tried it. The owner reported that it works perfectly.
 
 ---
 

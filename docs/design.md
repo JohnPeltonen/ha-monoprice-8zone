@@ -88,7 +88,7 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 - If no `#` arrives within 0.5 seconds, the code logs that at debug level and carries on. **(Claude's call)**
 - Then the code queries that zone's status and updates HA, so HA shows what the amp actually did. The amp doesn't send the new status by itself.
 - The amp ignores power and volume commands for a zone with Do Not Disturb on. So if the status shows a command didn't take and Do Not Disturb is on, the code turns Do Not Disturb off, sends the command again, turns Do Not Disturb back on, and queries again. It holds the lock throughout, so a poll can't see Do Not Disturb off. Do Not Disturb is off for up to about a second, and a doorbell press in that moment would play in that zone. This worked on the real amp, on one zone. **(The owner chose this workaround on 2026-10-31.** Trying the command first is Claude's call: a zone without Do Not Disturb sends what it always did, and a command the amp doesn't ignore causes no gap.)
-- A wall keypad or IR remote reaches the amp directly, so the Maximum volume doesn't limit it, and neither does `send_command`. A zone above its limit shows 100%, and lowering the limit doesn't change what's playing. The next volume change lands at or below the limit, which can be a sudden drop. **(Claude's call)**
+- A wall keypad or IR remote reaches the amp directly, so the Maximum volume doesn't limit it, and neither does `send_command`. A zone above its limit shows 100%, and lowering the limit doesn't change the amp's volume. So a zone that's off comes back on at its old volume if that's above the limit. The next volume change lands at or below the limit, which can be a sudden drop. If a zone doesn't answer, its Maximum volume slider greys out with its other controls, and the stored limit still applies. **(Claude's call)**
 - HA runs one command at a time for each type of entity, so a quick second press on volume up starts from the volume the first press set. **(Claude's call)**
 
 ### Polling
@@ -239,6 +239,7 @@ I (the owner) decided:
 - the entities: media player, Do Not Disturb, bass, treble and balance, with no page sensor;
 - one device per zone;
 - a volume slider, plus buttons;
+- a Maximum volume for each zone, with the volume slider's 100% meaning that maximum;
 - `serialx`, not `pymonoprice`;
 - named sources, with unnamed sources hidden;
 - a reconfigure screen for the port, and options for zones and source names;

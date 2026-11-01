@@ -23,7 +23,7 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 
 ## Requirements
 
-- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names. A set command gets the command back and then `#`, or `Command Error.` and then `#`. A zone that's off rejects everything except power and Do Not Disturb, and `Amp.set_value` raises `ZoneOffError`.
+- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names. A set command gets the command back and then `#`, or `Command Error.` and then `#`. A zone that's off rejects volume, mute, source, bass, treble and balance, and `Amp.set_value` raises `ZoneOffError`.
 - **Connection:** one serial connection per config entry, every command behind one `asyncio.Lock`, opened on setup and **explicitly closed on unload**, so Reload works.
 - **Errors:** turn a port lock (`OSError` errno 16), a missing port and timeouts into clear config-flow errors, and into `ConfigEntryNotReady` during setup.
 - **Config flow:** pick the port with `SerialPortSelector`; zones (1-8) to enable; source names for 1-6, where unnamed sources stay out of the source list (Source 1 is often a doorbell chime). Add a **reconfigure** step so the port can change without deleting the entry. Use an options flow for zones and source names.
@@ -35,7 +35,7 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
   - `number` per zone: Maximum volume, a percentage stored in the entry's options and never sent to the amp. The media player's 100% is that maximum.
   - No page-active (`PA`) sensor in v1.
 - **After a set command,** refresh that zone's state. The amp doesn't send it back.
-- **Do Not Disturb:** the amp ignores power and volume commands for a zone with it on. When a set command didn't take and Do Not Disturb is on, `Amp.set_value` turns it off, sends the command again and turns it back on, under one hold of the lock. `send_command` stays raw.
+- **Do Not Disturb:** the amp ignores power and volume commands for a zone with it on. When a set command didn't take, Do Not Disturb is on, and the zone is on (or the command is power), `Amp.set_value` turns it off, sends the command again and turns it back on, under one hold of the lock. `send_command` stays raw.
 
 ## Repo layout
 

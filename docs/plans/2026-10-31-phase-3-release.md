@@ -64,7 +64,7 @@
 - Produces: `ZoneOffError(AmpError)` and `Amp.turn_on(zone: int, volume_limit: int) -> ZoneStatus` in `amp.py`.
 - Produces: `AmpCoordinator.async_turn_on(zone: int) -> None`.
 
-- [ ] **Step 1: Add the tests**
+- [x] **Step 1: Add the tests**
 
 In `tests/amp/test_commands.py`, with a new `ZONE_1_OFF` in `fake_amp.py` (power off, volume 10, Do Not Disturb off):
 
@@ -140,29 +140,29 @@ async def test_volume_on_an_off_zone_shows_the_error(hass, amp, set_up):
 
 In `tests/ha/test_number.py`, `test_bass_on_an_off_zone_shows_the_error`: the same, through `number.set_value`, and the state stays at 0.
 
-- [ ] **Step 2: Commit the tests and push**
+- [x] **Step 2: Commit the tests and push**
 
 Message: "Add tests for off zones and the volume at turn-on (they fail until the next commit)". Local amp tests fail here too, on the missing names.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `amp.py`: add `ZoneOffError(AmpError)`. In `set_value`, after the query and before the Do Not Disturb check, raise it when `field` is neither `POWER` nor `DO_NOT_DISTURB`, `status.power` is false, and the attribute doesn't already equal `value`. Add `turn_on`: `set_value(zone, POWER, 1)`, then `set_value(zone, VOLUME, volume_limit)` only if the returned status shows the zone on and above the limit, and return the latest status. A turn-on that didn't take must not show the off-zone error.
 - `coordinator.py`: `_error_key` maps `ZoneOffError` to `zone_off`. `async_turn_on` calls `amp.turn_on(zone, self.volume_limit(zone))` and shows the status as `async_set_value` does.
 - `media_player.py`: `async_turn_on` calls `coordinator.async_turn_on(self.zone)`.
 - Both strings files: `exceptions.zone_off.message` is "The zone must be on to change its settings."
 
-- [ ] **Step 4: Update the docs**
+- [x] **Step 4: Update the docs**
 
 - `PROTOCOL.md`: mute survives powering a zone off and on.
 - `README.md`: in the maximum volume line, a zone above its maximum gets lowered right after HA turns it on, and in What it does, changing a setting on an off zone shows an error.
 - `docs/design.md`: the decisions above, the automation effect in Review Focus 4, and default-on volume in Later.
 - `CLAUDE.md`, Requirements: a zone that's off rejects most set commands, and `Amp.set_value` raises `ZoneOffError`.
 
-- [ ] **Step 5: Run everything local, commit and push**
+- [x] **Step 5: Run everything local, commit and push**
 
 Message: "Show an error for settings on an off zone, and lower a zone to its limit when it turns on".
 
-- [ ] **Step 6: Check both runs**
+- [x] **Step 6: Check both runs**
 
 Expected: the tests-only run fails on the new tests, and the implementation run passes every workflow.
 
@@ -170,14 +170,26 @@ The plan review changed the tests from those above: `test_stale_off_zone_still_t
 
 ### Task 2: Final review, the real amp and the release
 
-- [ ] **Step 1: Final review**
+- [x] **Step 1: Final review**
 
 A very capable reviewer reads the diff, this plan and the Review Focus. Findings that break this plan's goal enter one fix pass, each with a failing test first. Anything else goes to Later.
 
-- [ ] **Step 2: Try it on the amp**
+- [x] **Step 2: Try it on the amp**
 
 The owner redownloads the integration in HACS and restarts Home Assistant. Claude then runs these on one zone through the REST API: set bass with the zone off (expected: an error), set a low limit, then turn on a zone that's above it (expected: the zone lands at the limit), then put everything back.
 
-- [ ] **Step 3: Close out and tag**
+- [x] **Step 3: Close out and tag**
 
 Tick the checkboxes, add "What changed during the build", commit and push. Then tag `v0.1.0` on that commit and push the tag.
+
+---
+
+## What changed during the build
+
+- **Plan review:** `Amp.turn_on` lowers the volume only if the status shows the zone on, so a turn-on that didn't take doesn't show the off-zone error. The test changes are listed under Task 1. The review's claim that `CLAUDE.md` still listed all four hardware checks was out of date.
+- **A broken commit, fixed forward:** a script that reordered the strings crashed, and the same command went on to commit and push. So the commit "Show an error for settings on an off zone, and lower a zone to its limit when it turns on" left the new message out of `strings.json`, and its Amp tests job failed. The next commit fixed it. The new message sits last in both files.
+- **Red run:** the tests-only commit failed on exactly the 6 new amp tests and 3 new HA tests that need the change. The fixed commit passed 85 amp tests, 76 HA tests and hassfest.
+- **Final review:** no Critical or Important findings. Doc gaps are fixed in the close-out commit. Left as they are: the card can show the zone as on next to the error for up to 30 seconds after a keypad or remote turned it off, a timeout on the lowering step shows "no answer" while the card says off until the next poll, an action aimed at several zones errors if any one is off, and one assertion in `test_bass_on_an_off_zone_shows_the_error` can't fail.
+- **Not judged:** what the amp reports during a 12V page. How the error looks in HA's own UI: the API returned the message, but no one has looked at the card.
+- **On the real amp (2026-10-31), on one zone:** bass with the zone off returned "The zone must be on to change its settings" and changed nothing. With the amp at volume 9 and a limit of 5 steps, HA's turn on left the zone on at volume 5, with and without Do Not Disturb on, and Do Not Disturb stayed on. The whole action took 1.35 seconds, or 1.63 with Do Not Disturb on. Nobody listened, so how long the old volume is audible hasn't been measured. A full backup was taken first.
+- **Release:** a GitHub Release goes with the tag, because HACS may not show a bare tag as a version. That's from memory, not checked.

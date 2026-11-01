@@ -71,6 +71,7 @@ A command that's accepted gets the command back as confirmation, for example `<1
 - With its power off and Do Not Disturb off, zone 17 rejected volume, mute, bass, treble, balance and source. It accepted power and Do Not Disturb. Observed.
 - With its power off and Do Not Disturb on, zone 11 rejected volume and also power, even though the power command asked for off. Observed.
 - Mute survives powering a zone off and on: a zone turned off muted comes back on muted. Observed.
+- A zone takes a volume command right after a power on command, with or without the Do Not Disturb workaround. Observed on one zone.
 
 ## PA (paging) and Do Not Disturb
 

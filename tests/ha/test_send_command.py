@@ -26,6 +26,13 @@ async def test_send_command_does_not_lift_do_not_disturb(hass, amp, set_up):
     assert amp.zones[1]["PR"] == 1
 
 
+async def test_send_command_shows_the_set_reply(hass, amp, set_up):
+    await set_up()
+    assert await send(hass, "<11MU01") == {"reply": ">11MU01\\r\\n#"}
+    amp.zones[1]["PR"] = 0
+    assert await send(hass, "<11MU00") == {"reply": "Command Error.\\r\\n#"}
+
+
 async def test_send_command_when_the_amp_is_silent(hass, amp, set_up):
     await set_up()
     amp.silent_zones = {1}

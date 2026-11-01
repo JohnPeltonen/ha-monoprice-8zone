@@ -11,9 +11,9 @@ What one 44518 (firmware unknown, set to MASTER) actually did over serial in Oct
 
 ## Zone IDs
 
-- Master amp zones are `11` to `18`. The amp's rear MASTER/SLAVE switch must be on MASTER. Observed for 11 and 15.
+- Master amp zones are `11` to `18`. The amp's rear MASTER/SLAVE switch must be on MASTER. Observed for all eight.
 - Linked slave amps would be `21` to `28` and `31` to `38`. Unverified.
-- `10` addresses every zone on the master. Unverified.
+- `?10` queries every zone on the master. Observed. Using `10` in a set command is unverified.
 
 ## Status query
 
@@ -46,7 +46,7 @@ Two differences from the 6-zone amp:
 1. **No echo.** The 6-zone amp sends your command back before the reply. The 44518 doesn't.
 2. **Names on the end.** The 44518 adds the zone name and source name after the digits.
 
-`?10` should return one line per master zone. Unverified.
+`?10` returns one reply per master zone, each ending in `#`, zones 11 to 18 in order. Observed.
 
 ## Single-field query
 
@@ -62,10 +62,14 @@ Two differences from the 6-zone amp:
 | `<11CH02` | zone 11 to source 2 | observed |
 | `<11VO10` | zone 11 volume 10 | observed |
 | `<15DT01` | zone 15 Do Not Disturb on | observed |
-| `<xxMUuu` | mute | unverified |
-| `<xxTRuu`, `<xxBSuu`, `<xxBLuu` | treble, bass, balance | unverified |
+| `<xxMUuu` | mute | observed |
+| `<xxTRuu`, `<xxBSuu`, `<xxBLuu` | treble, bass, balance | observed in the zone's status. Which end of the balance scale is left is unverified. |
 
-After a set command, the owner remembers the 44518 sending a single `#` and nothing else, so the zone's new status has to be queried separately. Not captured yet.
+A command that's accepted gets the command back as confirmation, for example `<17MU01` gets `>17MU01` + CR LF + `#`. Observed. The reply doesn't carry the zone's full status, so that has to be queried separately. The amp can also refuse a command:
+
+- A rejected command gets `Command Error.` + CR LF + `#`, and nothing changes. Observed.
+- With its power off and Do Not Disturb off, zone 17 rejected volume, mute, bass, treble, balance and source. It accepted power and Do Not Disturb. Observed.
+- With its power off and Do Not Disturb on, zone 11 rejected volume and also power, even though the power command asked for off. Observed.
 
 ## PA (paging) and Do Not Disturb
 

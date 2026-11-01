@@ -84,7 +84,7 @@ Send `?1z`, where `z` is the zone number 1 to 8 (so `?11` to `?18`). Read until 
 
 Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` sets zone 1 to volume 10. The fields are listed in PROTOCOL.md.
 
-- I remember the 44518 answering a set command with a single `#` and nothing else, so the code reads until `#`. This hasn't been captured yet. The first hardware check confirms it.
+- The 44518 answers a set command with a line and then `#`: the command back if it's accepted, or `Command Error.` if it isn't (PROTOCOL.md). The code reads until `#`, then queries the zone to see what actually happened.
 - If no `#` arrives within 0.5 seconds, the code logs that at debug level and carries on. **(Claude's call)**
 - Then the code queries that zone's status and updates HA, so HA shows what the amp actually did. The amp doesn't send the new status by itself.
 - The amp ignores power and volume commands for a zone with Do Not Disturb on. So if the status shows a command didn't take and Do Not Disturb is on, the code turns Do Not Disturb off, sends the command again, turns Do Not Disturb back on, and queries again. It holds the lock throughout, so a poll can't see Do Not Disturb off. Do Not Disturb is off for up to about a second, and a doorbell press in that moment would play in that zone. This worked on the real amp, on one zone. **(The owner chose this workaround on 2026-10-31.** Trying the command first is Claude's call: a zone without Do Not Disturb sends what it always did, and a command the amp doesn't ignore causes no gap.)
@@ -94,8 +94,8 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 ### Polling
 
 - Every 30 seconds, HA queries each enabled zone, one at a time. **(Claude's call.** In my house nothing changes the amp outside HA, so polling is a backup, for example after a power cut.)
-- The all-zones query (`?10`) isn't used until a hardware check shows the 44518 returns all 8 zones.
-- If a zone doesn't answer during a poll, that zone's entities show as unavailable until it answers again. The other zones carry on. **(Claude's call.** If one zone misbehaves, for example zone 7 or 8 before the hardware checks, the rest of the amp and the `send_command` action still work.)
+- The all-zones query (`?10`) works on the 44518 but isn't used. Querying each zone one at a time already works on the amp.
+- If a zone doesn't answer during a poll, that zone's entities show as unavailable until it answers again. The other zones carry on. **(Claude's call.** If one zone misbehaves, the rest of the amp and the `send_command` action still work.)
 - If no zone answers, the poll fails, and every entity shows as unavailable until a poll succeeds.
 - A command from the dashboard can run between two zones of a poll. Its result wins over the poll's older reading of that zone, so HA doesn't put the old value back when the poll ends. **(Claude's call)**
 
@@ -189,7 +189,7 @@ A fake serial connection replays:
 - the captured 44518 status reply from PROTOCOL.md;
 - the same reply with an echo in front (the 6-zone amp's behavior);
 - no reply (timeout);
-- a single `#` after a set command;
+- a set command's replies: the command back, `Command Error.`, and a bare `#`;
 - stray bytes before a reply **(Claude's call)**;
 - a late reply about another zone, on its own and in the middle of a poll **(Claude's call)**.
 
@@ -211,12 +211,12 @@ A simulated 44518 answers the integration's commands byte for byte. Like serialx
 
 ## Hardware checks
 
-These need the owner at the amp, after the integration is installed. Each one is run from Developer Tools > Actions with `send_command`. Results go in PROTOCOL.md, where "unverified" becomes "observed".
+Each one is run with `send_command`. Results are in PROTOCOL.md.
 
-1. A set command, for example `<11VO10`, gets a single `#` back.
-2. `?10` returns all 8 zones.
-3. Zones 17 and 18 reply like the others.
-4. The set commands for mute, bass, treble and balance work, and we learn which end of the balance scale is left. Balance also checks speaker wiring: slide it fully to one side, and only that side's speaker should play.
+1. Done: a set command gets the command back, or `Command Error.`, and then `#`. It isn't a single `#`, as first remembered.
+2. Done: `?10` returns all 8 zones.
+3. Done: zones 17 and 18 reply like the others.
+4. Partly done: the set commands for mute, bass, treble and balance work. Still needs someone listening: which end of the balance scale is left. Slide it fully to one side, and only that side's speaker should play.
 
 ## Release
 

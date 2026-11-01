@@ -11,6 +11,8 @@ COMMAND = re.compile(rb"([?<])1([1-8])(?:([A-Z]{2})(\d{2}))?\r")
 FIELDS = ("PA", "PR", "MU", "DT", "VO", "TR", "BS", "BL", "CH", "LS")
 # Seen on the real amp: with Do Not Disturb on, these commands change nothing. The other fields haven't been tried.
 IGNORED_WITH_DO_NOT_DISTURB = {"PR", "VO"}
+# Seen on the real amp: a zone that's off rejects every set command except these.
+ACCEPTED_WHEN_OFF = {"PR", "DT"}
 
 
 class SimulatedAmp:
@@ -47,9 +49,12 @@ class SimulatedAmp:
         state = self.zones[zone]
         if match[1] == b"<":
             field = match[3].decode()
-            if not (state["DT"] and field in IGNORED_WITH_DO_NOT_DISTURB):
-                state[field] = int(match[4])
-            return b"#"
+            if (state["DT"] and field in IGNORED_WITH_DO_NOT_DISTURB) or (
+                not state["PR"] and field not in ACCEPTED_WHEN_OFF
+            ):
+                return b"Command Error.\r\n#"
+            state[field] = int(match[4])
+            return f">1{zone}{field}{match[4].decode()}\r\n#".encode()
         digits = "".join(f"{state[field]:02d}" for field in FIELDS)
         return f">1{zone}{digits} Zone{zone}    Source{state['CH']:02d}\r\n#".encode()
 

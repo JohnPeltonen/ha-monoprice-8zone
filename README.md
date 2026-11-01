@@ -12,7 +12,7 @@ What it's been run on: one 44518 set to MASTER (no linked slave amps), Home Assi
 
 ## Status
 
-The integration is written, and its tests pass in GitHub Actions. It hasn't run on my amp yet: the hardware checks come next, and version 0.1.0 comes after them. [PROTOCOL.md](PROTOCOL.md) documents what the 44518 actually sends over serial.
+It's running on my amp, and its tests pass in GitHub Actions. [PROTOCOL.md](PROTOCOL.md) documents what the 44518 actually sends over serial.
 
 ## Why not the built-in Monoprice integration?
 

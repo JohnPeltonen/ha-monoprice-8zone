@@ -20,6 +20,20 @@ async def test_set_value_waits_for_hash_then_queries(make_amp):
     ]
 
 
+async def test_set_value_with_the_amps_real_reply(make_amp):
+    amp, transport = make_amp(b">11VO20\r\n#", ZONE_1_VOLUME_20)
+    status = await amp.set_value(1, VOLUME, 20)
+    assert status.volume == 20
+    assert len(transport.log) == 4
+
+
+async def test_set_value_when_the_amp_rejects_it(make_amp):
+    amp, transport = make_amp(b"Command Error.\r\n#", ZONE_1)
+    status = await amp.set_value(1, VOLUME, 20)
+    assert status.volume == 10
+    assert len(transport.log) == 4
+
+
 async def test_set_value_without_hash_still_queries(make_amp, monkeypatch, caplog):
     monkeypatch.setattr(amp_module, "SET_REPLY_TIMEOUT", 0.05)
     caplog.set_level(logging.DEBUG)

@@ -23,11 +23,11 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 
 ## Requirements
 
-- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names. A set command gets a single `#` back (the owner's recollection, not captured yet).
+- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names. A set command gets the command back and then `#`, or `Command Error.` and then `#`.
 - **Connection:** one serial connection per config entry, every command behind one `asyncio.Lock`, opened on setup and **explicitly closed on unload**, so Reload works.
 - **Errors:** turn a port lock (`OSError` errno 16), a missing port and timeouts into clear config-flow errors, and into `ConfigEntryNotReady` during setup.
 - **Config flow:** pick the port with `SerialPortSelector`; zones (1-8) to enable; source names for 1-6, where unnamed sources stay out of the source list (Source 1 is often a doorbell chime). Add a **reconfigure** step so the port can change without deleting the entry. Use an options flow for zones and source names.
-- **Polling:** one `DataUpdateCoordinator` polls every enabled zone (a `?10` bulk query if the hardware check shows it works, otherwise one query per zone). Never query slave zones.
+- **Polling:** one `DataUpdateCoordinator` polls every enabled zone (one query per zone; `?10` works, but isn't used). Never query slave zones.
 - **Entities:** one device per zone, each linked to one device for the amp.
   - `media_player` per zone: on/off, volume (00-38 mapped to 0.0-1.0, plus volume step), mute, source select.
   - `switch` per zone: Do Not Disturb (`DT`).
@@ -62,14 +62,9 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 - A fake serial transport that replays the captured 44518 reply from PROTOCOL.md; one variant with an echo; one with a timeout.
 - Cover the config flow (including the port-lock error), setup and unload (the port gets closed), and the reply parser.
 
-## Hardware checks still to run (needs the owner at the amp)
+## Hardware check still to run (needs someone listening at the amp)
 
-1. Confirm that a set command gets a single `#` back.
-2. Whether `?10` returns all eight zones.
-3. The replies for zones 17 and 18.
-4. Whether the set commands for mute, bass, treble and balance work, and which end of the balance scale is left.
-
-Write the results into PROTOCOL.md (change "unverified" to "observed").
+Which end of the balance scale is left. The other checks are done, and their results are in PROTOCOL.md. Write this one there too (change "unverified" to "observed").
 
 ## Working agreements (approved by the owner on 2026-10-29)
 

@@ -17,3 +17,10 @@ def test_port_in_use_says_to_restart():
     strings = json.loads((FOLDER / "strings.json").read_text(encoding="utf-8"))
     assert "restart Home Assistant" in strings["config"]["error"]["port_in_use"]
     assert "restart Home Assistant" in strings["exceptions"]["port_in_use"]["message"]
+
+
+def test_port_in_use_points_at_other_causes():
+    strings = json.loads((FOLDER / "strings.json").read_text(encoding="utf-8"))
+    for message in (strings["config"]["error"]["port_in_use"], strings["exceptions"]["port_in_use"]["message"]):
+        assert "another integration or app" in message
+        assert "the amp's adapter" in message

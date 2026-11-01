@@ -23,7 +23,8 @@ Home Assistant's built-in "Monoprice 6-Zone Amplifier" integration can't read th
 - A media player for each zone (1 to 8): power, volume (a slider and up/down buttons), mute and source
 - A Do Not Disturb switch for each zone, which keeps that zone out of the amp's hardware PA page (handy for a doorbell chime you don't want playing on the deck). The amp ignores power and volume commands for a zone with it on, so the integration turns it off for a moment, sends the command, and turns it back on. A doorbell press in that moment would play in that zone.
 - Bass, treble and balance sliders for each zone, on the zone's device page
-- A maximum volume for each zone, on the zone's device page. The zone's volume slider then runs from 0 to that maximum, so a stray swipe can't go past it. It doesn't limit wall keypads or IR remotes
+- A maximum volume for each zone, on the zone's device page. The zone's volume slider then runs from 0 to that maximum, so a stray swipe can't go past it. If a zone is above its maximum when Home Assistant turns it on, the integration lowers it right after, so you might hear the old volume for a moment. It doesn't limit wall keypads or IR remotes
+- An error if you change a setting on a zone that's off, because the amp ignores it
 - Source names you choose; unnamed sources stay out of the source list
 - Change the serial port without deleting and re-adding the integration
 - Reload works, because the integration closes the serial port when it unloads

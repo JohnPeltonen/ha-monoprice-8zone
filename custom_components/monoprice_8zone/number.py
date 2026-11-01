@@ -28,7 +28,7 @@ NUMBERS = (
     ZoneNumberDescription(
         key="treble", translation_key="treble", field=TREBLE, offset=7, native_min_value=-7, native_max_value=7
     ),
-    # Negative is left. Which end of the amp's scale is left gets confirmed in a hardware check.
+    # Negative is meant to be left. Which end of the amp's scale is left hasn't been checked by ear.
     ZoneNumberDescription(
         key="balance", translation_key="balance", field=BALANCE, offset=10, native_min_value=-10, native_max_value=10
     ),

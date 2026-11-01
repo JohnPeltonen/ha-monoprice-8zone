@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from custom_components.monoprice_8zone.amp import Amp, AmpError, AmpTimeoutError, PortFailedError, ZoneStatus
+from custom_components.monoprice_8zone.amp import Amp, AmpError, AmpTimeoutError, PortFailedError, ZoneOffError, ZoneStatus
 from custom_components.monoprice_8zone.const import CONF_MAX_VOLUMES, CONF_ZONES, DOMAIN, MAX_VOLUME, SCAN_INTERVAL
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,15 @@ class AmpCoordinator(DataUpdateCoordinator[dict[int, ZoneStatus | None]]):
         """Change one setting, then show the zone's status as the amp reports it."""
         try:
             status = await self.amp.set_value(zone, field, value)
+        except AmpError as exc:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key=self._error_key(exc)) from exc
+        self._set_during_poll[zone] = status
+        self.async_set_updated_data({**self.data, zone: status})
+
+    async def async_turn_on(self, zone: int) -> None:
+        """Turn a zone on, lowered to its limit if it's above it."""
+        try:
+            status = await self.amp.turn_on(zone, self.volume_limit(zone))
         except AmpError as exc:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key=self._error_key(exc)) from exc
         self._set_during_poll[zone] = status
@@ -80,4 +89,6 @@ class AmpCoordinator(DataUpdateCoordinator[dict[int, ZoneStatus | None]]):
             return "port_failed"
         if isinstance(exc, AmpTimeoutError):
             return "no_answer"
+        if isinstance(exc, ZoneOffError):
+            return "zone_off"
         return "closed"

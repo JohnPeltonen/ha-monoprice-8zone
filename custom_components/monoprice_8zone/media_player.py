@@ -65,7 +65,7 @@ class ZoneMediaPlayer(ZoneEntity, MediaPlayerEntity):
         return self._sources.get(self.status.source, f"Source {self.status.source}")
 
     async def async_turn_on(self) -> None:
-        await self.coordinator.async_set_value(self.zone, POWER, 1)
+        await self.coordinator.async_turn_on(self.zone)
 
     async def async_turn_off(self) -> None:
         await self.coordinator.async_set_value(self.zone, POWER, 0)

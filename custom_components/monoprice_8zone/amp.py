@@ -84,6 +84,10 @@ class AmpTimeoutError(AmpError):
     """The amp didn't answer in time."""
 
 
+class ZoneOffError(AmpError):
+    """The zone is off, and the amp takes only power and Do Not Disturb commands for a zone that's off."""
+
+
 class PortFailedError(AmpError):
     """The serial port failed or disappeared while in use."""
 
@@ -206,7 +210,11 @@ class Amp:
         async with self._lock:
             await self._set_locked(command)
             status = await self._query_locked(zone)
-            if field == DO_NOT_DISTURB or not status.do_not_disturb or getattr(status, STATUS_ATTRIBUTES[field]) == value:
+            if field == DO_NOT_DISTURB or getattr(status, STATUS_ATTRIBUTES[field]) == value:
+                return status
+            if field != POWER and not status.power:
+                raise ZoneOffError(f"{command!r} had no effect because zone {zone} is off")
+            if not status.do_not_disturb:
                 return status
             # The amp ignores commands for a zone with Do Not Disturb on, so lift it for this one.
             logger.debug("%r had no effect with Do Not Disturb on, lifting it", command)
@@ -216,6 +224,13 @@ class Amp:
             finally:
                 await self._set_locked(set_command(zone, DO_NOT_DISTURB, 1))
             return await self._query_locked(zone)
+
+    async def turn_on(self, zone: int, volume_limit: int) -> ZoneStatus:
+        """Turn a zone on. The amp won't take a volume while it's off, so one above the limit gets lowered after."""
+        status = await self.set_value(zone, POWER, 1)
+        if status.power and status.volume > volume_limit:
+            status = await self.set_value(zone, VOLUME, volume_limit)
+        return status
 
     async def send_raw(self, command: str) -> bytes:
         """Send one ? or < command and return whatever the amp sends back, which may be nothing."""

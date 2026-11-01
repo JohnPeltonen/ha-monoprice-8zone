@@ -88,7 +88,9 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 - If no `#` arrives within 0.5 seconds, the code logs that at debug level and carries on. **(Claude's call)**
 - Then the code queries that zone's status and updates HA, so HA shows what the amp actually did. The amp doesn't send the new status by itself.
 - The amp ignores power and volume commands for a zone with Do Not Disturb on. So if the status shows a command didn't take and Do Not Disturb is on, the code turns Do Not Disturb off, sends the command again, turns Do Not Disturb back on, and queries again. It holds the lock throughout, so a poll can't see Do Not Disturb off. Do Not Disturb is off for up to about a second, and a doorbell press in that moment would play in that zone. This worked on the real amp, on one zone. **(The owner chose this workaround on 2026-10-31.** Trying the command first is Claude's call: a zone without Do Not Disturb sends what it always did, and a command the amp doesn't ignore causes no gap.)
-- A wall keypad or IR remote reaches the amp directly, so the Maximum volume doesn't limit it, and neither does `send_command`. A zone above its limit shows 100%, and lowering the limit doesn't change the amp's volume. So a zone that's off comes back on at its old volume if that's above the limit. The next volume change lands at or below the limit, which can be a sudden drop. If a zone doesn't answer, its Maximum volume slider greys out with its other controls, and the stored limit still applies. **(Claude's call)**
+- A wall keypad or IR remote reaches the amp directly, so the Maximum volume doesn't limit it, and neither does `send_command`. A zone above its limit shows 100%, and lowering the limit doesn't change the amp's volume. The next volume change lands at or below the limit, which can be a sudden drop. If a zone doesn't answer, its Maximum volume slider greys out with its other controls, and the stored limit still applies. **(Claude's call)**
+- When HA turns on a zone above its limit, the integration lowers it to the limit right after. The amp rejects a volume while the zone is off, so the old volume can be heard for a moment. **(The owner's call on 2026-10-31.)** A zone turned on by a keypad or remote stays where it is until its next volume change.
+- A zone that's off rejects volume, mute, source, bass, treble and balance. If the status after a command shows it didn't take and the zone is off, HA shows "The zone must be on to change its settings." and Do Not Disturb isn't lifted. **(The owner's call on 2026-10-31.** Applying it to every rejected setting is Claude's call.) An automation that changes one of these on an off zone now gets that error, which stops it by default, so turn the zone on first.
 - HA runs one command at a time for each type of entity, so a quick second press on volume up starts from the volume the first press set. **(Claude's call)**
 
 ### Polling
@@ -107,7 +109,7 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 | Volume up/down | | One amp step per press, stopping at the zone's limit. The built-in integration also moves one step. **(Claude's call)** |
 | Maximum volume | not sent to the amp | 5% to 100% of the amp's full volume, starting at 100%. The limit in amp steps is the percentage of 38, rounded. Stored per zone in the entry's options, so it's there before any entity starts and survives restarts. **(Claude's call)** |
 | Bass, treble | 00 to 14, 07 is flat | -7 to +7, 0 is flat. **(Claude's call)** |
-| Balance | 00 to 20, 10 is center | -10 to +10, 0 is center, negative is left. Which end of the amp's scale is left gets confirmed in a hardware check. **(Claude's call)** |
+| Balance | 00 to 20, 10 is center | -10 to +10, 0 is center, negative is left. Which end of the amp's scale is left hasn't been checked by ear. The owner chose to trust the wiring and come back if it needs remapping. **(Claude's call)** |
 
 ## What shows up in HA
 
@@ -216,7 +218,7 @@ Each one is run with `send_command`. Results are in PROTOCOL.md.
 1. Done: a set command gets the command back, or `Command Error.`, and then `#`. It isn't a single `#`, as first remembered.
 2. Done: `?10` returns all 8 zones.
 3. Done: zones 17 and 18 reply like the others.
-4. Partly done: the set commands for mute, bass, treble and balance work. Still needs someone listening: which end of the balance scale is left. Slide it fully to one side, and only that side's speaker should play.
+4. Done, except for one part the owner chose to skip: the set commands for mute, bass, treble and balance work. Which end of the balance scale is left wasn't checked by ear.
 
 ## Release
 
@@ -227,7 +229,8 @@ Each one is run with `send_command`. Results are in PROTOCOL.md.
 
 ## Later
 
-- Poll with `?10`, if the `?10` check passes.
+- Poll with `?10`, which works on the amp.
+- A default-on volume, so a zone always comes on at a reasonable level. The amp accepts a volume only while a zone is on, so it would be set as HA turns the zone off.
 - A page sensor driven by the 12V trigger.
 - Music that follows each person around the house.
 

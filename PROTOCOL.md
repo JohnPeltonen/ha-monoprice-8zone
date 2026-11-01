@@ -70,6 +70,7 @@ A command that's accepted gets the command back as confirmation, for example `<1
 - A rejected command gets `Command Error.` + CR LF + `#`, and nothing changes. Observed.
 - With its power off and Do Not Disturb off, zone 17 rejected volume, mute, bass, treble, balance and source. It accepted power and Do Not Disturb. Observed.
 - With its power off and Do Not Disturb on, zone 11 rejected volume and also power, even though the power command asked for off. Observed.
+- Mute survives powering a zone off and on: a zone turned off muted comes back on muted. Observed.
 
 ## PA (paging) and Do Not Disturb
 

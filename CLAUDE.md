@@ -23,7 +23,7 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 
 ## Requirements
 
-- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names. A set command gets the command back and then `#`, or `Command Error.` and then `#`.
+- **Reads:** write the command, then read until a line matching `>(\d{2})(\d{20})` is followed by `#`, or until an idle gap or an overall timeout. Ignore an echoed command if one shows up. Ignore the trailing zone and source names. A set command gets the command back and then `#`, or `Command Error.` and then `#`. A zone that's off rejects everything except power and Do Not Disturb, and `Amp.set_value` raises `ZoneOffError`.
 - **Connection:** one serial connection per config entry, every command behind one `asyncio.Lock`, opened on setup and **explicitly closed on unload**, so Reload works.
 - **Errors:** turn a port lock (`OSError` errno 16), a missing port and timeouts into clear config-flow errors, and into `ConfigEntryNotReady` during setup.
 - **Config flow:** pick the port with `SerialPortSelector`; zones (1-8) to enable; source names for 1-6, where unnamed sources stay out of the source list (Source 1 is often a doorbell chime). Add a **reconfigure** step so the port can change without deleting the entry. Use an options flow for zones and source names.
@@ -62,9 +62,9 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
 - A fake serial transport that replays the captured 44518 reply from PROTOCOL.md; one variant with an echo; one with a timeout.
 - Cover the config flow (including the port-lock error), setup and unload (the port gets closed), and the reply parser.
 
-## Hardware check still to run (needs someone listening at the amp)
+## Hardware checks
 
-Which end of the balance scale is left. The other checks are done, and their results are in PROTOCOL.md. Write this one there too (change "unverified" to "observed").
+Done, and the results are in PROTOCOL.md. One part wasn't checked: which end of the balance scale is left. The owner chose to trust the wiring and come back if it needs remapping. If that happens, write the result in PROTOCOL.md (change "unverified" to "observed").
 
 ## Working agreements (approved by the owner on 2026-10-29)
 

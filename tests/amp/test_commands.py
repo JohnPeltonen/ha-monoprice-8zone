@@ -6,9 +6,20 @@ import pytest
 
 import amp as amp_module
 from amp import BALANCE, BASS, DO_NOT_DISTURB, MUTE, POWER, SOURCE, TREBLE, VOLUME, PortFailedError
-from fake_amp import ZONE_1, ZONE_1_DND, ZONE_1_DND_VOLUME_20, ZONE_1_OFF_DND, ZONE_1_VOLUME_20, ZONE_2
+from fake_amp import (
+    ZONE_1,
+    ZONE_1_DND,
+    ZONE_1_DND_VOLUME_20,
+    ZONE_1_OFF,
+    ZONE_1_OFF_DND,
+    ZONE_1_OFF_DND_VOLUME_20,
+    ZONE_1_OFF_VOLUME_20,
+    ZONE_1_VOLUME_20,
+    ZONE_2,
+)
 
 LIFTED = [b"<11VO20\r", b"?11\r", b"<11DT00\r", b"<11VO20\r", b"<11DT01\r", b"?11\r"]
+REJECTED = b"Command Error.\r\n#"
 
 
 async def test_set_value_waits_for_hash_then_queries(make_amp):
@@ -32,6 +43,61 @@ async def test_set_value_when_the_amp_rejects_it(make_amp):
     status = await amp.set_value(1, VOLUME, 20)
     assert status.volume == 10
     assert len(transport.log) == 4
+
+
+async def test_set_value_on_an_off_zone(make_amp):
+    amp, transport = make_amp(REJECTED, ZONE_1_OFF)
+    with pytest.raises(amp_module.ZoneOffError):
+        await amp.set_value(1, VOLUME, 20)
+    assert transport.writes == [b"<11VO20\r", b"?11\r"]
+
+
+async def test_set_value_on_an_off_zone_to_the_same_value(make_amp):
+    amp, _ = make_amp(REJECTED, ZONE_1_OFF)
+    assert (await amp.set_value(1, VOLUME, 10)).volume == 10
+
+
+async def test_set_value_on_an_off_zone_with_do_not_disturb_does_not_lift(make_amp):
+    amp, transport = make_amp(REJECTED, ZONE_1_OFF_DND)
+    with pytest.raises(amp_module.ZoneOffError):
+        await amp.set_value(1, VOLUME, 20)
+    assert transport.writes == [b"<11VO20\r", b"?11\r"]
+
+
+async def test_do_not_disturb_works_on_an_off_zone(make_amp):
+    amp, _ = make_amp(b">11DT01\r\n#", ZONE_1_OFF_DND)
+    assert (await amp.set_value(1, DO_NOT_DISTURB, 1)).do_not_disturb
+
+
+async def test_turn_on_lowers_to_the_limit(make_amp):
+    amp, transport = make_amp(b">11PR01\r\n#", ZONE_1_VOLUME_20, b">11VO10\r\n#", ZONE_1)
+    assert (await amp.turn_on(1, 10)).volume == 10
+    assert transport.writes == [b"<11PR01\r", b"?11\r", b"<11VO10\r", b"?11\r"]
+
+
+async def test_turn_on_at_the_limit_keeps_the_volume(make_amp):
+    amp, transport = make_amp(b">11PR01\r\n#", ZONE_1)
+    assert (await amp.turn_on(1, 10)).volume == 10
+    assert transport.writes == [b"<11PR01\r", b"?11\r"]
+
+
+async def test_turn_on_that_did_not_take_sends_no_volume(make_amp):
+    amp, transport = make_amp(REJECTED, ZONE_1_OFF_VOLUME_20)
+    assert not (await amp.turn_on(1, 10)).power
+    assert transport.writes == [b"<11PR01\r", b"?11\r"]
+
+
+async def test_turn_on_with_do_not_disturb_lowers_to_the_limit(make_amp):
+    amp, transport = make_amp(
+        REJECTED, ZONE_1_OFF_DND_VOLUME_20, b"#", b"#", b"#", ZONE_1_DND_VOLUME_20,
+        REJECTED, ZONE_1_DND_VOLUME_20, b"#", b"#", b"#", ZONE_1_DND,
+    )
+    status = await amp.turn_on(1, 10)
+    assert (status.power, status.volume, status.do_not_disturb) == (True, 10, True)
+    assert transport.writes == [
+        b"<11PR01\r", b"?11\r", b"<11DT00\r", b"<11PR01\r", b"<11DT01\r", b"?11\r",
+        b"<11VO10\r", b"?11\r", b"<11DT00\r", b"<11VO10\r", b"<11DT01\r", b"?11\r",
+    ]
 
 
 async def test_set_value_without_hash_still_queries(make_amp, monkeypatch, caplog):

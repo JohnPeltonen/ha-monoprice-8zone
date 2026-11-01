@@ -1,5 +1,6 @@
 import pytest
 from homeassistant.const import EntityCategory
+from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import flush_store
 
 MAXIMUM_VOLUME = "number.zone_1_maximum_volume"
@@ -64,6 +65,17 @@ async def test_limit_is_saved(hass, entry, set_up, hass_storage):
     entries = hass_storage["core.config_entries"]["data"]["entries"]
     saved = next(item for item in entries if item["entry_id"] == entry.entry_id)
     assert saved["options"]["max_volumes"] == {"1": 60}
+
+
+async def test_bass_on_an_off_zone_shows_the_error(hass, amp, set_up):
+    amp.zones[1]["PR"] = 0
+    await set_up()
+    with pytest.raises(HomeAssistantError) as caught:
+        await hass.services.async_call(
+            "number", "set_value", {"entity_id": "number.zone_1_bass", "value": 5}, blocking=True
+        )
+    assert caught.value.translation_key == "zone_off"
+    assert float(hass.states.get("number.zone_1_bass").state) == 0
 
 
 async def test_silent_zone_numbers_are_unavailable(hass, amp, set_up):

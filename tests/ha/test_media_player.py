@@ -184,6 +184,38 @@ async def test_limit_survives_a_reload(hass, amp, entry, set_up):
     assert amp.zones[1]["VO"] == 19
 
 
+async def test_turn_on_lowers_to_the_limit(hass, amp, set_up):
+    amp.zones[1]["PR"] = 0
+    amp.zones[1]["VO"] = 30
+    await set_up()
+    await set_limit(hass, 50)
+    amp.writes.clear()
+    await call(hass, "turn_on")
+    assert amp.writes == [b"<11PR01\r", b"?11\r", b"<11VO19\r", b"?11\r"]
+    assert hass.states.get(ZONE_1).state == "on"
+    assert hass.states.get(ZONE_1).attributes["volume_level"] == 1.0
+
+
+async def test_volume_on_an_off_zone_shows_the_error(hass, amp, set_up):
+    amp.zones[1]["PR"] = 0
+    amp.zones[1]["DT"] = 1
+    await set_up()
+    amp.writes.clear()
+    with pytest.raises(HomeAssistantError) as caught:
+        await call(hass, "volume_set", volume_level=0.5)
+    assert caught.value.translation_key == "zone_off"
+    assert amp.writes == [b"<11VO19\r", b"?11\r"]
+    assert amp.zones[1]["DT"] == 1
+
+
+async def test_zone_turned_on_since_the_last_poll_takes_the_command(hass, amp, set_up):
+    amp.zones[1]["PR"] = 0
+    await set_up()
+    amp.zones[1]["PR"] = 1  # a keypad, between polls
+    await call(hass, "volume_set", volume_level=0.5)
+    assert amp.zones[1]["VO"] == 19
+
+
 async def test_select_unknown_source_is_rejected(hass, amp, set_up):
     await set_up()
     amp.writes.clear()

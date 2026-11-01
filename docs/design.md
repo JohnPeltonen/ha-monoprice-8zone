@@ -21,7 +21,8 @@ This integration fixes all three, for the 44518 only.
 - Each of the 8 zones is its own device in HA, with:
   - a **media player**: power, volume (a slider and up/down buttons), mute and source;
   - a **Do Not Disturb switch**. A zone with Do Not Disturb on is left out of the amp's hardware page. (A 12V signal on the amp's PA jack plays Source 1 in every zone, for example for a doorbell chime.) Its power and volume controls still work. See Set commands;
-  - **bass, treble and balance** sliders. Balance also helps check speaker wiring.
+  - **bass, treble and balance** sliders. Balance also helps check speaker wiring;
+  - a **Maximum volume** slider. The zone's volume slider then runs from 0 to that maximum.
 - Sources get names you choose. A source without a name stays out of the source list.
 - You can change the serial port without deleting the integration.
 - Reload works, because unloading closes the port.
@@ -87,6 +88,7 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 - If no `#` arrives within 0.5 seconds, the code logs that at debug level and carries on. **(Claude's call)**
 - Then the code queries that zone's status and updates HA, so HA shows what the amp actually did. The amp doesn't send the new status by itself.
 - The amp ignores power and volume commands for a zone with Do Not Disturb on. So if the status shows a command didn't take and Do Not Disturb is on, the code turns Do Not Disturb off, sends the command again, turns Do Not Disturb back on, and queries again. It holds the lock throughout, so a poll can't see Do Not Disturb off. Do Not Disturb is off for up to about a second, and a doorbell press in that moment would play in that zone. This worked on the real amp, on one zone. **(The owner chose this workaround on 2026-10-31.** Trying the command first is Claude's call: a zone without Do Not Disturb sends what it always did, and a command the amp doesn't ignore causes no gap.)
+- A wall keypad or IR remote reaches the amp directly, so the Maximum volume doesn't limit it, and neither does `send_command`. A zone above its limit shows 100%, and lowering the limit doesn't change what's playing. The next volume change lands at or below the limit, which can be a sudden drop. **(Claude's call)**
 - HA runs one command at a time for each type of entity, so a quick second press on volume up starts from the volume the first press set. **(Claude's call)**
 
 ### Polling
@@ -101,8 +103,9 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 
 | Setting | Amp value | In HA |
 |---|---|---|
-| Volume | 00 to 38 | 0% to 100%. Setting a volume rounds to the nearest amp step. |
-| Volume up/down | | One amp step per press. The built-in integration does the same. **(Claude's call)** |
+| Volume | 00 to the zone's limit | 0% to 100%. Setting a volume rounds to the nearest amp step. 100% is the zone's Maximum volume, so an automation or voice command asking for 50% also gets 50% of the limit. **(The owner's call)** |
+| Volume up/down | | One amp step per press, stopping at the zone's limit. The built-in integration also moves one step. **(Claude's call)** |
+| Maximum volume | not sent to the amp | 5% to 100% of the amp's full volume, starting at 100%. The limit in amp steps is the percentage of 38, rounded. Stored per zone in the entry's options, so it's there before any entity starts and survives restarts. **(Claude's call)** |
 | Bass, treble | 00 to 14, 07 is flat | -7 to +7, 0 is flat. **(Claude's call)** |
 | Balance | 00 to 20, 10 is center | -10 to +10, 0 is center, negative is left. Which end of the amp's scale is left gets confirmed in a hardware check. **(Claude's call)** |
 

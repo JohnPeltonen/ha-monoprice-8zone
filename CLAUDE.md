@@ -32,6 +32,7 @@ A Home Assistant custom integration for one Monoprice 44518 8-zone amp over RS-2
   - `media_player` per zone: on/off, volume (00-38 mapped to 0.0-1.0, plus volume step), mute, source select.
   - `switch` per zone: Do Not Disturb (`DT`).
   - `number` per zone: bass, treble and balance, as configuration entities.
+  - `number` per zone: Maximum volume, a percentage stored in the entry's options and never sent to the amp. The media player's 100% is that maximum.
   - No page-active (`PA`) sensor in v1.
 - **After a set command,** refresh that zone's state. The amp doesn't send it back.
 - **Do Not Disturb:** the amp ignores power and volume commands for a zone with it on. When a set command didn't take and Do Not Disturb is on, `Amp.set_value` turns it off, sends the command again and turns it back on, under one hold of the lock. `send_command` stays raw.

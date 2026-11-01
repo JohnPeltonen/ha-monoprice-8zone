@@ -6,6 +6,9 @@ DOMAIN = "monoprice_8zone"
 
 CONF_ZONES = "zones"
 CONF_SOURCES = "sources"
+CONF_MAX_VOLUMES = "max_volumes"
+
+MAX_VOLUME = 38
 
 ZONES = (1, 2, 3, 4, 5, 6, 7, 8)
 SOURCES = (1, 2, 3, 4, 5, 6)

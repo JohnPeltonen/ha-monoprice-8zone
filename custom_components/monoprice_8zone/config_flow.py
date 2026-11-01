@@ -141,7 +141,8 @@ class Monoprice8ZoneOptionsFlow(OptionsFlowWithReload):
         if user_input is not None:
             options = options_from_input(user_input)
             if options[CONF_ZONES]:
-                return self.async_create_entry(data=options)
+                # This form doesn't show the maximum volumes, so keep them.
+                return self.async_create_entry(data={**self.config_entry.options, **options})
             errors[CONF_ZONES] = "no_zones"
         current = self.config_entry.options
         suggested = user_input if user_input is not None else {

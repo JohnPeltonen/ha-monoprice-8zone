@@ -1,9 +1,9 @@
-"""Bass, treble and balance sliders for each zone, as configuration entities."""
+"""Bass, treble, balance and maximum volume sliders for each zone, as configuration entities."""
 
 from dataclasses import dataclass
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription, NumberMode
-from homeassistant.const import EntityCategory
+from homeassistant.const import PERCENTAGE, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -42,6 +42,7 @@ async def async_setup_entry(
     async_add_entities(
         ZoneNumber(coordinator, zone, description) for zone in coordinator.zones for description in NUMBERS
     )
+    async_add_entities(MaximumVolumeNumber(coordinator, zone) for zone in coordinator.zones)
 
 
 class ZoneNumber(ZoneEntity, NumberEntity):
@@ -61,3 +62,25 @@ class ZoneNumber(ZoneEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         amp_value = round(value) + self.entity_description.offset
         await self.coordinator.async_set_value(self.zone, self.entity_description.field, amp_value)
+
+
+class MaximumVolumeNumber(ZoneEntity, NumberEntity):
+    """The most the zone's volume slider can ask for, as a percentage of the amp's full volume."""
+
+    _attr_translation_key = "max_volume"
+    _attr_native_min_value = 5
+    _attr_native_max_value = 100
+    _attr_native_step = 1
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_mode = NumberMode.SLIDER
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: AmpCoordinator, zone: int) -> None:
+        super().__init__(coordinator, zone, "max_volume")
+
+    @property
+    def native_value(self) -> int:
+        return self.coordinator.max_volume_percent(self.zone)
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.coordinator.async_set_max_volume(self.zone, round(value))

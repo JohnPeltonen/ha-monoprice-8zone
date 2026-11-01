@@ -18,8 +18,6 @@ from custom_components.monoprice_8zone.entity import ZoneEntity
 # HA runs one action at a time per platform, so a second volume press reads the volume the first one set.
 PARALLEL_UPDATES = 1
 
-MAX_VOLUME = 38
-
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: AmpConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
@@ -55,7 +53,8 @@ class ZoneMediaPlayer(ZoneEntity, MediaPlayerEntity):
 
     @property
     def volume_level(self) -> float:
-        return self.status.volume / MAX_VOLUME
+        # 1.0 is the zone's maximum volume. A keypad or remote can take the amp above it.
+        return min(self.status.volume / self.coordinator.volume_limit(self.zone), 1.0)
 
     @property
     def is_volume_muted(self) -> bool:
@@ -72,13 +71,15 @@ class ZoneMediaPlayer(ZoneEntity, MediaPlayerEntity):
         await self.coordinator.async_set_value(self.zone, POWER, 0)
 
     async def async_set_volume_level(self, volume: float) -> None:
-        await self.coordinator.async_set_value(self.zone, VOLUME, round(volume * MAX_VOLUME))
+        await self.coordinator.async_set_value(self.zone, VOLUME, round(volume * self.coordinator.volume_limit(self.zone)))
 
     async def async_volume_up(self) -> None:
-        await self.coordinator.async_set_value(self.zone, VOLUME, min(self.status.volume + 1, MAX_VOLUME))
+        limit = self.coordinator.volume_limit(self.zone)
+        await self.coordinator.async_set_value(self.zone, VOLUME, min(self.status.volume + 1, limit))
 
     async def async_volume_down(self) -> None:
-        await self.coordinator.async_set_value(self.zone, VOLUME, max(self.status.volume - 1, 0))
+        limit = self.coordinator.volume_limit(self.zone)
+        await self.coordinator.async_set_value(self.zone, VOLUME, max(min(self.status.volume, limit) - 1, 0))
 
     async def async_mute_volume(self, mute: bool) -> None:
         await self.coordinator.async_set_value(self.zone, MUTE, int(mute))

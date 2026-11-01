@@ -8,7 +8,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from custom_components.monoprice_8zone.amp import Amp, AmpError, AmpTimeoutError, PortFailedError, ZoneStatus
-from custom_components.monoprice_8zone.const import CONF_ZONES, DOMAIN, SCAN_INTERVAL
+from custom_components.monoprice_8zone.const import CONF_MAX_VOLUMES, CONF_ZONES, DOMAIN, MAX_VOLUME, SCAN_INTERVAL
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,22 @@ class AmpCoordinator(DataUpdateCoordinator[dict[int, ZoneStatus | None]]):
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key=self._error_key(exc)) from exc
         self._set_during_poll[zone] = status
         self.async_set_updated_data({**self.data, zone: status})
+
+    def max_volume_percent(self, zone: int) -> int:
+        return self.config_entry.options.get(CONF_MAX_VOLUMES, {}).get(str(zone), 100)
+
+    def volume_limit(self, zone: int) -> int:
+        """The zone's maximum volume in amp steps."""
+        return round(self.max_volume_percent(zone) / 100 * MAX_VOLUME)
+
+    def async_set_max_volume(self, zone: int, percent: int) -> None:
+        options = self.config_entry.options
+        # A new nested dict, because HA saves the options only if they compare different.
+        max_volumes = {**options.get(CONF_MAX_VOLUMES, {}), str(zone): percent}
+        self.hass.config_entries.async_update_entry(
+            self.config_entry, options={**options, CONF_MAX_VOLUMES: max_volumes}
+        )
+        self.async_update_listeners()
 
     async def async_send_raw(self, command: str) -> str:
         """Send one raw command and return the amp's reply, with CR and LF written out so they show."""

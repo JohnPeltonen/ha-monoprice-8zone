@@ -49,6 +49,9 @@
       "bass": {
         "name": "Bass"
       },
+      "max_volume": {
+        "name": "Maximum volume"
+      },
       "treble": {
         "name": "Treble"
       }

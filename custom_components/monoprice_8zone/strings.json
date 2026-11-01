@@ -86,6 +86,9 @@
     },
     "unknown_source": {
       "message": "{source} isn't one of the named sources."
+    },
+    "zone_off": {
+      "message": "The zone must be on to change its settings."
     }
   },
   "options": {

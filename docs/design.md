@@ -20,7 +20,7 @@ This integration fixes all three, for the 44518 only.
 
 - Each of the 8 zones is its own device in HA, with:
   - a **media player**: power, volume (a slider and up/down buttons), mute and source;
-  - a **Do Not Disturb switch**. A zone with Do Not Disturb on is left out of the amp's hardware page. (A 12V signal on the amp's PA jack plays Source 1 in every zone, for example for a doorbell chime.) Its controls still work. See Set commands;
+  - a **Do Not Disturb switch**. A zone with Do Not Disturb on is left out of the amp's hardware page. (A 12V signal on the amp's PA jack plays Source 1 in every zone, for example for a doorbell chime.) Its power and volume controls still work. See Set commands;
   - **bass, treble and balance** sliders. Balance also helps check speaker wiring.
 - Sources get names you choose. A source without a name stays out of the source list.
 - You can change the serial port without deleting the integration.
@@ -86,7 +86,7 @@ Send `<1zPPuu`: zone, two-letter field, two-digit value. For example, `<11VO10` 
 - I remember the 44518 answering a set command with a single `#` and nothing else, so the code reads until `#`. This hasn't been captured yet. The first hardware check confirms it.
 - If no `#` arrives within 0.5 seconds, the code logs that at debug level and carries on. **(Claude's call)**
 - Then the code queries that zone's status and updates HA, so HA shows what the amp actually did. The amp doesn't send the new status by itself.
-- The amp ignores power and volume commands for a zone with Do Not Disturb on. So if the status shows a command didn't take and Do Not Disturb is on, the code turns Do Not Disturb off, sends the command again, turns Do Not Disturb back on, and queries again. It holds the lock throughout, so a poll can't see Do Not Disturb off. Do Not Disturb is off for up to about a second, and a doorbell press in that moment plays in that zone. **(The owner chose this workaround on 2026-10-31.** Trying the command first is Claude's call: a zone without Do Not Disturb sends what it always did, and a command the amp doesn't ignore causes no gap.)
+- The amp ignores power and volume commands for a zone with Do Not Disturb on. So if the status shows a command didn't take and Do Not Disturb is on, the code turns Do Not Disturb off, sends the command again, turns Do Not Disturb back on, and queries again. It holds the lock throughout, so a poll can't see Do Not Disturb off. Do Not Disturb is off for up to about a second, and a doorbell press in that moment would play in that zone. This worked on the real amp, on one zone. **(The owner chose this workaround on 2026-10-31.** Trying the command first is Claude's call: a zone without Do Not Disturb sends what it always did, and a command the amp doesn't ignore causes no gap.)
 - HA runs one command at a time for each type of entity, so a quick second press on volume up starts from the volume the first press set. **(Claude's call)**
 
 ### Polling

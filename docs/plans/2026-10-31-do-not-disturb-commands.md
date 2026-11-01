@@ -74,7 +74,7 @@ Task 1 adds the ones a user can see to design.md.
 - Consumes: `Amp._query_locked(zone: int) -> ZoneStatus`, `Amp._send(data: bytes) -> None`, `set_command(zone: int, field: str, value: int) -> bytes`.
 - Produces: `Amp.set_value(zone: int, field: str, value: int) -> ZoneStatus`, with the same signature. `Amp._set_locked(command: bytes) -> None` writes a set command and waits for the `#`.
 
-- [ ] **Step 1: Add the replies to `tests/amp/fake_amp.py`**
+- [x] **Step 1: Add the replies to `tests/amp/fake_amp.py`**
 
 ```python
 ZONE_1_DND = b">1100010001100707100200 Zone1    Source02\r\n#"
@@ -82,7 +82,7 @@ ZONE_1_DND_VOLUME_20 = b">1100010001200707100200 Zone1    Source02\r\n#"
 ZONE_1_OFF_DND = b">1100000001100707100200 Zone1    Source02\r\n#"
 ```
 
-- [ ] **Step 2: Add the amp tests to `tests/amp/test_commands.py`**
+- [x] **Step 2: Add the amp tests to `tests/amp/test_commands.py`**
 
 Import `BALANCE`, `BASS`, `DO_NOT_DISTURB`, `MUTE`, `POWER`, `SOURCE` and `TREBLE` from `amp`, and the three new replies from `fake_amp`.
 
@@ -161,12 +161,12 @@ async def test_port_failure_while_do_not_disturb_is_lifted(make_amp):
         await amp.set_value(1, VOLUME, 20)
 ```
 
-- [ ] **Step 3: Run them**
+- [x] **Step 3: Run them**
 
 Run: `.venv/Scripts/python -m pytest tests/amp/test_commands.py -q`
 Expected: the lifting, query-waits, cancelled and port-failure tests fail, because `set_value` doesn't lift yet. `test_command_that_took_leaves_do_not_disturb_alone` and `test_do_not_disturb_commands_are_never_retried` pass already: they pin behavior the change must keep.
 
-- [ ] **Step 4: Teach the simulated amp and add the HA tests**
+- [x] **Step 4: Teach the simulated amp and add the HA tests**
 
 In `tests/ha/simulated_amp.py`, a set command for a field in `IGNORED_WITH_DO_NOT_DISTURB = {"PR", "VO"}` changes nothing while the zone's `DT` is 1. It still answers `#`.
 
@@ -203,11 +203,11 @@ async def test_send_command_does_not_lift_do_not_disturb(hass, amp, set_up):
     assert amp.zones[1]["PR"] == 1
 ```
 
-- [ ] **Step 5: Commit the tests and push**
+- [x] **Step 5: Commit the tests and push**
 
 Message: "Add tests for commands on a Do Not Disturb zone (they fail until the next commit)". Paths: the five test files. Note the run's id. Don't wait for it.
 
-- [ ] **Step 6: Implement in `amp.py`**
+- [x] **Step 6: Implement in `amp.py`**
 
 Add `STATUS_ATTRIBUTES: dict[str, str]` beside `FIELD_RANGES`, mapping `POWER`, `MUTE`, `VOLUME`, `TREBLE`, `BASS`, `BALANCE` and `SOURCE` to their `ZoneStatus` attribute names. Move the existing send-and-wait-for-`#` code into `_set_locked`. Then:
 
@@ -229,12 +229,12 @@ async with self._lock:
 
 `ZoneStatus.power` and `.mute` are bools, and they compare equal to 1 and 0, so no conversion is needed.
 
-- [ ] **Step 7: Run everything local**
+- [x] **Step 7: Run everything local**
 
 Run: `.venv/Scripts/python -m compileall -q custom_components tests` and `.venv/Scripts/python -m pytest -v`
 Expected: all pass, with no change to any existing test.
 
-- [ ] **Step 8: Update the docs**
+- [x] **Step 8: Update the docs**
 
 `PROTOCOL.md`, PA section. Replace "Observed wiring; full chime test pending." with "Observed wiring, and a doorbell chime rang in several zones. Observed." Add after the Do Not Disturb line:
 
@@ -250,36 +250,42 @@ Expected: all pass, with no change to any existing test.
 
 > - **Do Not Disturb:** the amp ignores power and volume commands for a zone with it on. When a set command didn't take and Do Not Disturb is on, `Amp.set_value` turns it off, sends the command again and turns it back on, under one hold of the lock. `send_command` stays raw.
 
-- [ ] **Step 9: Commit the implementation and docs, and push**
+- [x] **Step 9: Commit the implementation and docs, and push**
 
 Message: "Make commands work on a Do Not Disturb zone". Paths: `amp.py` and the four docs.
 
-- [ ] **Step 10: Check both runs**
+- [x] **Step 10: Check both runs**
 
 Run: `gh run watch <run-id> --exit-status` for each.
 Expected: in the tests-only run, "Amp tests" fails on the new amp tests from Step 3, and "Home Assistant tests" fails on `test_power_with_do_not_disturb_on` and `test_volume_with_do_not_disturb_on`. `test_send_command_does_not_lift_do_not_disturb` passes from the start: it pins behavior the change must keep. The implementation run passes every workflow.
 
 ### Task 2: Final review and the real amp
 
-- [ ] **Step 1: Final review**
+- [x] **Step 1: Final review**
 
 A very capable reviewer reads the diff, this plan and the Review Focus. Findings that break this plan's goal enter one fix pass, each with a failing test first. Anything else goes to Later, or to an issue if the owner confirms one.
 
-- [ ] **Step 2: Try it on the amp**
+- [x] **Step 2: Try it on the amp**
 
 The owner redownloads the integration in HACS, restarts Home Assistant, and turns Do Not Disturb on for a zone that's playing. Claude sends a volume change, off, and on through its Home Assistant connection and reads the state after each. The owner confirms that the sound followed and that the switch stayed on.
 Expected: the state follows each command. Record the result in PROTOCOL.md.
 
 Until this step, every observation came from commands sent seconds apart, and the lift sends them in quick succession. If the amp drops the retried command or the command that turns Do Not Disturb back on, first try a 100 ms pause after each of those Do Not Disturb commands. `send_command` can't show this problem: it waits at least 0.3 seconds after each command, so the same commands sent by hand would probably work.
 
-- [ ] **Step 3: Close out the plan**
+- [x] **Step 3: Close out the plan**
 
 Tick the checkboxes, add "What changed during the build", and commit the plan.
 
 ---
 
-## Later
+## What changed during the build
 
+- **Plan review.** The cancelled-command test would have hung before the implementation existed, so its loop now also stops when the task ends. The command that turns Do Not Disturb off moved inside the `try`, with a second cancel test. Step 2 gained its imports and all seven fields.
+- **Final review.** No code changes. `design.md` now says "power and volume controls", and that the workaround worked on one zone.
+- **`test_send_command_does_not_lift_do_not_disturb`** passed from the start, as planned. Ruled, not broken on purpose: it pins behavior `send_raw` already had.
+- **The real amp.** On one zone with Do Not Disturb on, the owner heard power on, a volume change and power off work, and the switch was still on afterwards with the zone off. Claude's reads through the Home Assistant connection followed each command. No pause between commands was needed.
+
+## Later
 From the plan review, minor:
 
 - If Do Not Disturb doesn't come back on after a lift, nothing is logged. The switch shows it right away, because the final status comes from the amp. A warning in the log would make the cause easier to find.

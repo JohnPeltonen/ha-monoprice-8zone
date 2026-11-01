@@ -72,6 +72,7 @@ After a set command, the owner remembers the 44518 sending a single `#` and noth
 - 12V on the SYSTEM "PA" 3.5mm jack pages Source 1 to every zone, at each zone's own volume. A doorbell chime controller with a 12V trigger output (for example a Niles DBI-2) can drive it directly with a plain 3.5mm cable. Observed wiring, and a doorbell chime rang in several zones. Observed.
 - Zones with Do Not Disturb on are left out of the page. DND survived an amp power cycle. Observed.
 - With Do Not Disturb on, a zone keeps playing, but the amp ignores its power and volume commands: its status doesn't change, and neither does the sound. With it off, the same commands work. Observed on one zone. Mute, source, bass, treble and balance haven't been tried.
+- The integration works around this by turning Do Not Disturb off for a moment around the command, sent in quick succession. On one zone with it on, power on, volume and power off all worked, and it was still on afterwards, with the zone off. Observed.
 - Reports from 6-zone owners say paging can only be triggered by 12V, not RS-232.
 
 ## Why Home Assistant's built-in integration fails on the 44518
